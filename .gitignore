@@ -1,9 +1,9 @@
-.gradle/
-.idea/
-build/
-gradle/
-out/
-agent_game/
+.gradle
+.idea
+/build
+/gradle
+/out
+/agent_game
 gradlew
 gradlew.bat
 agent_game.iml

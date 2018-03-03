@@ -1,0 +1,36 @@
+group 'moxaj'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'antlr'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Antlr
+    antlr group: 'org.antlr', name: 'antlr4', version: '4.7.1'
+
+    // String templating
+    compile group: 'org.antlr', name: 'ST4', version: '4.0.8'
+
+    // Debug java source formatting
+    compile group: 'com.google.googlejavaformat', name: 'google-java-format', version: '1.5'
+
+    // Unit testing
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+sourceSets.main {
+    java.srcDirs = ['src/main/java', 'src/antlr/java']
+    resources.srcDirs = ['src/main/antlr']
+}
+
+generateGrammarSource {
+    maxHeapSize = '64m'
+    arguments += ['-package', 'agent_game.antlr', '-visitor', '-no-listener']
+    outputDirectory = new File('src/antlr/java/agent_game/antlr')
+}

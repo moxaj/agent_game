@@ -30,7 +30,6 @@ sourceSets.main {
 }
 
 generateGrammarSource {
-    maxHeapSize = '64m'
     arguments += ['-package', 'agent_game.antlr', '-visitor', '-no-listener']
     outputDirectory = new File('src/antlr/java/agent_game/antlr')
 }

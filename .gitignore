@@ -4,6 +4,7 @@
 /gradle
 /out
 /agent_game
+/src/antlr
 gradlew
 gradlew.bat
 agent_game.iml

@@ -119,7 +119,7 @@ public class ReturnStatementAnalyzer extends CompilerProcessor implements ICompi
 
             FunctionDefinition functionDefinition = resolvedFunctionDefinition(functionName);
 
-            switch (accumulateSequential(ctx.bodyStatements)) {
+            switch (accumulateSequential(ctx.block().statements)) {
                 case NEVER:
                     functionDefinition.setHasExplicitReturn(false);
                     break;
@@ -162,16 +162,16 @@ public class ReturnStatementAnalyzer extends CompilerProcessor implements ICompi
         @Override
         public Void visitIfStatement(AgentScriptParser.IfStatementContext ctx) {
             List<ReturnState> ifReturnStates = new ArrayList<>();
-            ifReturnStates.add(accumulateSequential(ctx.bodyStatements));
+            ifReturnStates.add(accumulateSequential(ctx.block().statements));
             ifReturnStates.addAll(ctx.elseIfStatements
                     .stream()
-                    .map(elseIfStatementContext -> accumulateSequential(elseIfStatementContext.bodyStatements))
+                    .map(elseIfStatementContext -> accumulateSequential(elseIfStatementContext.block().statements))
                     .collect(Collectors.toList()));
 
             AgentScriptParser.ElseStatementContext elseStatementContext = ctx.elseStatement();
             ifReturnStates.add(elseStatementContext == null
                     ? ReturnState.NEVER
-                    : accumulateSequential(elseStatementContext.bodyStatements));
+                    : accumulateSequential(elseStatementContext.block().statements));
 
             ReturnState returnState;
             if (ifReturnStates.stream().allMatch(ReturnState.NEVER::equals)) {
@@ -190,7 +190,7 @@ public class ReturnStatementAnalyzer extends CompilerProcessor implements ICompi
 
         @Override
         public Void visitWhileStatement(AgentScriptParser.WhileStatementContext ctx) {
-            ReturnState returnState = accumulateSequential(ctx.bodyStatements);
+            ReturnState returnState = accumulateSequential(ctx.block().statements);
             if (returnState == ReturnState.ALWAYS) {
                 returnState = ReturnState.SOMETIMES;
             }

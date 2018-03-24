@@ -38,11 +38,15 @@ constantDefinition
 functionDefinition
     : meta? FUNCTION nameSymbol=SYMBOL LPAREN
         argumentSymbols+=SYMBOL? (COMMA argumentSymbols+=SYMBOL)* RPAREN
-        bodyStatements+=statement*
+        block
       END
     ;
 
 // Statements
+
+block
+    : statements+=statement*
+    ;
 
 statement
     : assignStatement
@@ -59,7 +63,7 @@ assignStatement
 
 ifStatement
     : IF testExpression=expression
-        bodyStatements+=statement*
+        block
       elseIfStatements+=elseIfStatement*
       elseStatement?
       END
@@ -67,17 +71,17 @@ ifStatement
 
 elseIfStatement
     : ELSE IF testExpression=expression
-        bodyStatements+=statement*
+        block
     ;
 
 elseStatement
     : ELSE
-        bodyStatements+=statement*
+        block
     ;
 
 whileStatement
     : WHILE testExpression=expression
-        bodyStatements+=statement*
+        block
       END
     ;
 

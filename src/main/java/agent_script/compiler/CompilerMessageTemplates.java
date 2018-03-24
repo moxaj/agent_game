@@ -71,7 +71,7 @@ public final class CompilerMessageTemplates {
     public static final CompilerMessageTemplate A_0020 =
             create(ANALYZER, ERROR, "invalid variable or constant name: '%s'");
     public static final CompilerMessageTemplate A_0021 =
-            create(ANALYZER, ERROR, "no such local variable in scope: '%s'");
+            create(ANALYZER, ERROR, "no such constant or local variable in scope: '%s'");
     public static final CompilerMessageTemplate A_0022 =
             create(ANALYZER, ERROR, "constant is private: '%s'");
     public static final CompilerMessageTemplate A_0023 =

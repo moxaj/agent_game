@@ -258,8 +258,7 @@ public final class Emitter extends CompilerProcessor {
             FunctionDefinition functionDefinition = namespaceDefinition.getFunctionDefinitions().get(functionName);
             return new ST("" +
                     "<visibility> static Object <name>(<argumentNames>) {\n" +
-                    "    <interruptedCheck>\n" +
-                    "    <bodyStatements>\n" +
+                    "    <block>\n" +
                     "    <inferredReturnStatement>\n" +
                     "}")
                     .add("visibility", functionDefinition.isPrivate() ? "private" : "public")
@@ -267,9 +266,18 @@ public final class Emitter extends CompilerProcessor {
                     .add("argumentNames", ctx.argumentSymbols.stream()
                             .map(argumentSymbol -> "Object " + Compiler.munge(argumentSymbol.getText()))
                             .collect(Collectors.joining(",")))
-                    .add("interruptedCheck", interruptedCheck)
-                    .add("bodyStatements", visit(ctx.bodyStatements))
+                    .add("block", visit(ctx.block()))
                     .add("inferredReturnStatement", functionDefinition.hasExplicitReturn() ? "" : "return null;")
+                    .render();
+        }
+
+        @Override
+        public String visitBlock(AgentScriptParser.BlockContext ctx) {
+            return new ST("" +
+                    "<interruptedCheck>\n" +
+                    "<statements>")
+                    .add("interruptedCheck", interruptedCheck)
+                    .add("statements", visit(ctx.statements))
                     .render();
         }
 
@@ -289,10 +297,10 @@ public final class Emitter extends CompilerProcessor {
         public String visitIfStatement(AgentScriptParser.IfStatementContext ctx) {
             return new ST("" +
                     "if (<testExpression>) {\n" +
-                    "    <bodyStatements>" +
+                    "    <block>" +
                     "} <elseIfStatements> <elseStatement>")
                     .add("testExpression", asBoolean(ctx.testExpression))
-                    .add("bodyStatements", visit(ctx.bodyStatements))
+                    .add("block", visit(ctx.block()))
                     .add("elseIfStatements", visit(ctx.elseIfStatements))
                     .add("elseStatement", safeVisit(ctx.elseStatement()))
                     .render();
@@ -302,10 +310,10 @@ public final class Emitter extends CompilerProcessor {
         public String visitElseIfStatement(AgentScriptParser.ElseIfStatementContext ctx) {
             return new ST("" +
                     "else if (<testExpression>) {\n" +
-                    "    <bodyStatements>" +
+                    "    <block>" +
                     "}")
                     .add("testExpression", asBoolean(ctx.testExpression))
-                    .add("bodyStatements", visit(ctx.bodyStatements))
+                    .add("block", visit(ctx.block()))
                     .render();
         }
 
@@ -313,9 +321,9 @@ public final class Emitter extends CompilerProcessor {
         public String visitElseStatement(AgentScriptParser.ElseStatementContext ctx) {
             return new ST("" +
                     "else {\n" +
-                    "    <bodyStatements>" +
+                    "    <block>" +
                     "}")
-                    .add("bodyStatements", visit(ctx.bodyStatements))
+                    .add("block", visit(ctx.block()))
                     .render();
         }
 
@@ -323,12 +331,10 @@ public final class Emitter extends CompilerProcessor {
         public String visitWhileStatement(AgentScriptParser.WhileStatementContext ctx) {
             return new ST("" +
                     "while (<testExpression>) {\n" +
-                    "    <interruptedCheck>" +
-                    "    <bodyStatements>" +
+                    "    <block>" +
                     "}")
                     .add("testExpression", asBoolean(ctx.testExpression))
-                    .add("interruptedCheck", interruptedCheck)
-                    .add("bodyStatements", visit(ctx.bodyStatements))
+                    .add("block", visit(ctx.block()))
                     .render();
         }
 

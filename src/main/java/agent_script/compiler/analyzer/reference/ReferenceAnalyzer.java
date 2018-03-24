@@ -15,6 +15,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
+import org.antlr.v4.runtime.tree.Trees;
 
 import java.util.*;
 
@@ -51,24 +52,25 @@ public final class ReferenceAnalyzer extends CompilerProcessor {
          * @param parseTree the parse tree
          * @return the siblings
          */
-        private List<ParseTree> getSiblingsAfter(ParseTree parseTree) {
-            List<ParseTree> siblingsAfter = new ArrayList<>();
+        private List<ParseTree> getNextStatements(ParseTree parseTree) {
+            List<ParseTree> nextStatements = new ArrayList<>();
 
-            ParseTree parentParseTree = parseTree.getParent();
-            if (parentParseTree != null) {
-                boolean after = false;
+            ParseTree blockParseTree = (ParseTree) Trees.getAncestors(parseTree).stream()
+                    .filter(ancestorParseTree -> ancestorParseTree instanceof AgentScriptParser.BlockContext)
+                    .reduce((first, second) -> second)
+                    .orElseThrow(RuntimeException::new);
 
-                for (int i = 0; i < parentParseTree.getChildCount(); i++) {
-                    ParseTree siblingParseTree = parentParseTree.getChild(i);
-                    if (after) {
-                        siblingsAfter.add(siblingParseTree);
-                    } else if (siblingParseTree == parseTree) {
-                        after = true;
-                    }
+            boolean after = false;
+            for (int i = 0; i < blockParseTree.getChildCount(); i++) {
+                ParseTree parseTree2 = blockParseTree.getChild(i);
+                if (after) {
+                    nextStatements.add(parseTree2);
+                } else if (parseTree2 == parseTree) {
+                    after = true;
                 }
             }
 
-            return siblingsAfter;
+            return nextStatements;
         }
 
         /**
@@ -77,8 +79,9 @@ public final class ReferenceAnalyzer extends CompilerProcessor {
          * @param parseTree the parse tree
          */
         private void inheritSymbols(ParseTree parseTree) {
-            Set<Symbol> parentSymbols = symbolTable.getOrDefault(parseTree.getParent(), new HashSet<>());
-            symbolTable.computeIfAbsent(parseTree, key -> new HashSet<>()).addAll(parentSymbols);
+            symbolTable
+                    .computeIfAbsent(parseTree, key -> new HashSet<>())
+                    .addAll(symbolTable.getOrDefault(parseTree.getParent(), new HashSet<>()));
         }
 
         /**
@@ -149,21 +152,10 @@ public final class ReferenceAnalyzer extends CompilerProcessor {
         }
 
         @Override
-        public Void visitConstantDefinition(AgentScriptParser.ConstantDefinitionContext ctx) {
-            inheritSymbols(ctx);
-
-            getSiblingsAfter(ctx).forEach(siblingCtx ->
-                    symbolTable.computeIfAbsent(siblingCtx, key -> new HashSet<>()).add(Symbol.asNameSymbol(ctx.nameSymbol.getText())));
-            return super.visitConstantDefinition(ctx);
-        }
-
-        @Override
         public Void visitFunctionDefinition(AgentScriptParser.FunctionDefinitionContext ctx) {
             inheritSymbols(ctx);
-
-            ctx.bodyStatements.forEach(statementCtx ->
-                    ctx.argumentSymbols.forEach(token ->
-                            symbolTable.computeIfAbsent(statementCtx, key -> new HashSet<>()).add(Symbol.asNameSymbol(token.getText()))));
+            ctx.argumentSymbols.forEach(token ->
+                    symbolTable.computeIfAbsent(ctx.block(), key -> new HashSet<>()).add(Symbol.asNameSymbol(token.getText())));
             return super.visitFunctionDefinition(ctx);
         }
 
@@ -178,7 +170,7 @@ public final class ReferenceAnalyzer extends CompilerProcessor {
                 return super.visitAssignStatement(ctx);
             }
 
-            getSiblingsAfter(ctx.getParent()).forEach(siblingCtx ->
+            getNextStatements(ctx.getParent()).forEach(siblingCtx ->
                     symbolTable.computeIfAbsent(siblingCtx, key -> new HashSet<>()).add(variableName));
             return super.visitAssignStatement(ctx);
         }
@@ -203,7 +195,12 @@ public final class ReferenceAnalyzer extends CompilerProcessor {
 
             if (symbolName.isNameSymbol()) {
                 if (!symbolTable.get(ctx).contains(symbolName)) {
-                    reportMessage(A_0021.render(location, symbolName));
+                    ConstantDefinition constantDefinition =
+                            namespaceBundle.getNamespaceDefinition().getConstantDefinitions().get(symbolName.getNameSymbol());
+                    if (constantDefinition == null) {
+                        reportMessage(A_0021.render(location, symbolName));
+                        return null;
+                    }
                 }
             } else {
                 Symbol namespaceName = symbolName.getNamespaceSymbol();

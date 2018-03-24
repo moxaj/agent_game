@@ -1,143 +1,150 @@
 grammar AgentScript;
 
-/// ======================================================
-/// Parser rules
-/// ======================================================
+options {
+    tokenVocab=AgentScriptLexer;
+}
+
+// Main parser rule
 
 script
-    : constDeclarations+=constDeclaration* strategy
+    : namespaceDefinition
+      importDeclarations+=importDeclaration*
+      ( constantDefinitions+=constantDefinition
+      | functionDefinitions+=functionDefinition
+      )*
+      EOF
     ;
 
-constDeclaration
-    : name=CONST_IDENTIFIER '=' value=expression
+// Top level
+
+meta
+    : LMETA
+      metaSymbols+=SYMBOL (COMMA metaSymbols+=SYMBOL)*
+      RMETA
     ;
 
-strategy
-    : 'strategy'
-          bodyStatements+=statement*
-      'end'
+namespaceDefinition
+    : meta? NAMESPACE nameSymbol=SYMBOL
     ;
+
+importDeclaration
+    : IMPORT nameSymbol=SYMBOL (AS aliasSymbol=SYMBOL)?
+    ;
+
+constantDefinition
+    : meta? CONSTANT nameSymbol=SYMBOL ASSIGN valueExpression=expression
+    ;
+
+functionDefinition
+    : meta? FUNCTION nameSymbol=SYMBOL LPAREN
+        argumentSymbols+=SYMBOL? (COMMA argumentSymbols+=SYMBOL)* RPAREN
+        bodyStatements+=statement*
+      END
+    ;
+
+// Statements
 
 statement
-    : localAssignStatement
-    | memoryAssignStatement
+    : assignStatement
     | ifStatement
     | whileStatement
-    | actionStatement
+    | returnStatement
+    | functionCallStatement
+    | nativeStatement
     ;
 
-localAssignStatement
-    : name=LOCAL_IDENTIFIER '=' value=expression
-    ;
-
-memoryAssignStatement
-    : name=MEMORY_IDENTIFIER '=' value=expression
+assignStatement
+    : nameSymbol=SYMBOL ASSIGN valueExpression=expression
     ;
 
 ifStatement
-    : 'if' testCondition=expression
-          bodyStatements+=statement*
+    : IF testExpression=expression
+        bodyStatements+=statement*
       elseIfStatements+=elseIfStatement*
       elseStatement?
-      'end'
+      END
     ;
 
 elseIfStatement
-    : 'else' 'if' testCondition=expression
-          bodyStatements+=statement*
+    : ELSE IF testExpression=expression
+        bodyStatements+=statement*
     ;
 
 elseStatement
-    : 'else'
-          bodyStatements+=statement*
+    : ELSE
+        bodyStatements+=statement*
     ;
 
 whileStatement
-    : 'while' testCondition=expression
-          bodyStatements+=statement*
-      'end'
+    : WHILE testExpression=expression
+        bodyStatements+=statement*
+      END
     ;
 
-actionStatement
-    : ACTION_IDENTIFIER
+returnStatement
+    : RETURN innerExpression=expression
     ;
+
+functionCallStatement
+    : functionName=SYMBOL LPAREN
+        argumentExpressions+=expression?
+        (COMMA argumentExpressions+=expression)*
+      RPAREN
+    ;
+
+nativeStatement
+    : LNATIVE
+        preTokens+=NATIVE_CHARS?
+        (LNATIVE_QUOTE
+           expressions+=expression
+         RNATIVE_QUOTE
+         postTokens+=NATIVE_CHARS?)*
+      RNATIVE
+    ;
+
+// Expression
+
+// TODO since mutual left recursion is not supported,
+// either rewrite to layered version: ugly
+// OR leave as is: duplicated branches (e.g. functionCallStatement, functionCallExpression)
 
 expression
-    : BOOLEAN_LITERAL
-    | NUMBER_LITERAL
-    | variableExpression
-    | booleanExpression
-    | numberExpression
+    : LPAREN innerExpression=expression RPAREN   #parenWrappedExpression
+    | BOOLEAN                                    #literalExpression
+    | NUMBER                                     #literalExpression
+    | STRING                                     #literalExpression
+    | NIL                                        #nilExpression
+    | LNATIVE
+        preTokens+=NATIVE_CHARS?
+        (LNATIVE_QUOTE
+           expressions+=expression
+         RNATIVE_QUOTE
+         postTokens+=NATIVE_CHARS?)*
+      RNATIVE                                    #nativeExpression
+    | functionName=SYMBOL LPAREN
+        argumentExpressions+=expression?
+        (COMMA argumentExpressions+=expression)*
+      RPAREN                                     #functionCallExpression
+    | symbol=SYMBOL                              #symbolExpression
+    | operator=NOT innerExpression=expression    #unaryBooleanExpression
+    | operator=(ADD | SUB)
+      innerExpression=expression                 #unaryMathExpression
+    | leftExpression=expression
+      operator=(MUL | DIV)
+      rightExpression=expression                 #binaryMathExpression
+    | leftExpression=expression
+      operator=(ADD | SUB)
+      rightExpression=expression                 #binaryMathExpression
+    | leftExpression=expression
+      operator=(LT | LE | GT | GE)
+      rightExpression=expression                 #relationExpression
+    | leftExpression=expression
+      operator=(EQ | NE)
+      rightExpression=expression                 #equalityExpression
+    | leftExpression=expression
+      operator=AND
+      rightExpression=expression                 #andExpression
+    | leftExpression=expression
+      operator=OR
+      rightExpression=expression                 #orExpression
     ;
-
-variableExpression
-    : LOCAL_IDENTIFIER
-    | CONST_IDENTIFIER
-    | MEMORY_IDENTIFIER
-    | '(' innerExpression=variableExpression ')'
-    ;
-
-booleanExpression
-    : BOOLEAN_LITERAL
-    | variableExpression
-    | '!' negatedBooleanExpression=booleanExpression
-    | leftBooleanExpression=booleanExpression operator=('&&' | '||') rightBooleanExpression=booleanExpression
-    | leftNumberExpression=numberExpression operator=('<' | '>' | '<=' | '>=' | '==') rightNumberExpression=numberExpression
-    | '(' innerExpression=booleanExpression ')'
-    ;
-
-numberExpression
-    : NUMBER_LITERAL
-    | variableExpression
-    | leftExpression=numberExpression operator=('*' | '/' | '+' | '-') rightExpression=numberExpression
-    // TODO unary +- ?
-    | '(' innerExpression=numberExpression ')'
-    ;
-
-/// ======================================================
-/// Lexer rules
-/// ======================================================
-
-BOOLEAN_LITERAL
-    : 'true'
-    | 'false'
-    ;
-
-NUMBER_LITERAL
-    : ('0' | ([1-9][0-9]*))('.' [0-9]*[1-9])?
-    ;
-
-fragment IDENTIFIER
-    : [a-zA-Z0-9_]*
-    ;
-
-LOCAL_IDENTIFIER
-    : [a-z] IDENTIFIER
-    ;
-
-CONST_IDENTIFIER
-    : [A-Z] IDENTIFIER
-    ;
-
-MEMORY_IDENTIFIER
-    : '_' IDENTIFIER
-    ;
-
-ACTION_IDENTIFIER
-    : ':' IDENTIFIER
-    ;
-
-// Ignore whitespace
-
-WHITESPACE
-    : [ \t\n\r]+ -> skip
-    ;
-
-BLOCK_COMMENT
-    : '/*' .*? '*/' -> skip
-    ;
-
-LINE_COMMENT
-    : '//' ~[\r\n]* -> skip
-    ;
-

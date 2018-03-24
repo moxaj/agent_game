@@ -22,14 +22,17 @@ dependencies {
 
     // Unit testing
     testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    // YAML
+    compile group: 'com.esotericsoftware.yamlbeans', name: 'yamlbeans', version: '1.13'
 }
 
 sourceSets.main {
     java.srcDirs = ['src/main/java', 'src/antlr/java']
-    resources.srcDirs = ['src/main/antlr']
+    resources.srcDirs = ['src/main/antlr', 'src/main/resources']
 }
 
 generateGrammarSource {
-    arguments += ['-package', 'agent_game.antlr', '-visitor', '-no-listener']
-    outputDirectory = new File('src/antlr/java/agent_game/antlr')
+    arguments += ['-package', 'agent_script.antlr', '-visitor', '-no-listener']
+    outputDirectory = new File('src/antlr/java/agent_script/antlr')
 }

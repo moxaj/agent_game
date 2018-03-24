@@ -3,8 +3,9 @@
 /build
 /gradle
 /out
-/agent_game
+/agent_script
 /src/antlr
+/logs
 gradlew
 gradlew.bat
-agent_game.iml
+agent_script.iml

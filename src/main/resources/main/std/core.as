@@ -27,3 +27,8 @@ end
 function panic(message)
     "agent_script.runtime.Runtime.panic((String) {message})"
 end
+
+#[native]
+function println(message)
+   "agent_script.runtime.Runtime.println({message})"
+end

@@ -9,9 +9,9 @@ import java.util.concurrent.Callable;
 @SuppressWarnings("unused")
 public final class Runtime {
     /**
-     * The output stream. Redirect to reportMessage handlers while running scripts. // TODO
+     * The output stream.
      */
-    public static PrintStream out = System.out;
+    private static PrintStream out = System.out;
 
     /**
      * Coerces a value to a boolean.
@@ -96,9 +96,34 @@ public final class Runtime {
      * Throws a {@link ScriptPanicException}.
      *
      * @param message the exception message
-     * @throws ScriptPanicException
+     * @throws ScriptPanicException always throws
      */
     public static void panic(String message) throws ScriptPanicException {
         throw new ScriptPanicException(message);
+    }
+
+    /**
+     * Prints a message to {@link #out}.
+     *
+     * @param message the message to print
+     */
+    public static void println(Object message) {
+        out.println(message);
+    }
+
+    /**
+     * Redirects {@link #out} to another {@link PrintStream}.
+     *
+     * @param out the other stream
+     */
+    public static void redirectOut(PrintStream out) {
+        Runtime.out = out;
+    }
+
+    /**
+     * Restores {@link #out} to {@link System#out}.
+     */
+    public static void restoreOut() {
+        out = System.out;
     }
 }

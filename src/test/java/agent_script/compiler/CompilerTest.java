@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Compiler tests.
+ */
 @RunWith(Parameterized.class)
 public class CompilerTest {
     /**

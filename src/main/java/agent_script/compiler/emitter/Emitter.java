@@ -79,8 +79,29 @@ public final class Emitter extends CompilerProcessor {
             return contexts.stream().map(this::visit).collect(Collectors.joining());
         }
 
+        /**
+         * Returns the inferred type for a parse tree.
+         *
+         * @param parseTree the parse tree
+         * @return the inferred type
+         */
         private InferredType inferredType(ParseTree parseTree) {
             return namespaceBundle.getInferredTypes().get(parseTree);
+        }
+
+        /**
+         * Returns the source code which potentially wraps an expression with a boolean conversion.
+         *
+         * @param parseTree the parse tree
+         * @return the wrapped expression
+         */
+        private String asMaybeBoolean(ParseTree parseTree) {
+            String emitted = visit(parseTree);
+            return inferredType(parseTree) == InferredType.BOOLEAN
+                    ? emitted
+                    : new ST("asBoolean(<expression>)")
+                    .add("expression", emitted)
+                    .render();
         }
 
         /**
@@ -90,11 +111,8 @@ public final class Emitter extends CompilerProcessor {
          * @return the wrapped expression
          */
         private String asBoolean(ParseTree parseTree) {
-            String emitted = visit(parseTree);
-            return inferredType(parseTree) == InferredType.BOOLEAN
-                    ? emitted
-                    : new ST("asBoolean(<expression>)")
-                    .add("expression", emitted)
+            return new ST("asBoolean(<expression>)")
+                    .add("expression", visit(parseTree))
                     .render();
         }
 
@@ -364,8 +382,8 @@ public final class Emitter extends CompilerProcessor {
         @Override
         public String visitOrExpression(AgentScriptParser.OrExpressionContext ctx) {
             return new ST("(<leftExpression> || <rightExpression>)")
-                    .add("leftExpression", asBoolean(ctx.leftExpression))
-                    .add("rightExpression", asBoolean(ctx.rightExpression))
+                    .add("leftExpression", asMaybeBoolean(ctx.leftExpression))
+                    .add("rightExpression", asMaybeBoolean(ctx.rightExpression))
                     .render();
         }
 
@@ -379,8 +397,8 @@ public final class Emitter extends CompilerProcessor {
         @Override
         public String visitAndExpression(AgentScriptParser.AndExpressionContext ctx) {
             return new ST("(<leftExpression> && <rightExpression>)")
-                    .add("leftExpression", asBoolean(ctx.leftExpression))
-                    .add("rightExpression", asBoolean(ctx.rightExpression))
+                    .add("leftExpression", asMaybeBoolean(ctx.leftExpression))
+                    .add("rightExpression", asMaybeBoolean(ctx.rightExpression))
                     .render();
         }
 
@@ -435,7 +453,7 @@ public final class Emitter extends CompilerProcessor {
         @Override
         public String visitUnaryBooleanExpression(AgentScriptParser.UnaryBooleanExpressionContext ctx) {
             return new ST("(!<innerExpression>)")
-                    .add("innerExpression", asBoolean(ctx.innerExpression))
+                    .add("innerExpression", asMaybeBoolean(ctx.innerExpression))
                     .render();
         }
     }

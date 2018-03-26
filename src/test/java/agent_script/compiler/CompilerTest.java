@@ -89,7 +89,7 @@ public class CompilerTest {
                     .toArray(Path[]::new);
         }
         this.expectedCompilerMessageId = expectedCompilerMessageTemplate.getId();
-        this.cacheDirectory = Paths.get(".as_cache");
+        this.cacheDirectory = Paths.get("as_cache");
     }
 
     @Parameterized.Parameters(name = "{0}")

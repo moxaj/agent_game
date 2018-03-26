@@ -6,17 +6,17 @@ import agent_script.compiler.analyzer.namespace.NamespaceDefinition;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -128,30 +128,15 @@ public final class JavaCompiler extends CompilerProcessor {
             }
         }
 
-        // Create the java source file
+        // Write java source file
         try {
-            File javaSourceFile = javaSourcePath.toFile();
-            if (!javaSourceFile.exists()) {
-                File parent = javaSourceFile.getParentFile();
-                if (!parent.exists() && !parent.mkdirs()) {
-                    throw new IOException();
-                }
-
-                if (!javaSourceFile.createNewFile()) {
-                    throw new IOException();
-                }
+            Files.createDirectories(javaSourcePath.getParent());
+            try (BufferedWriter writer = Files.newBufferedWriter(javaSourcePath, Charset.forName("UTF-8"), StandardOpenOption.CREATE)) {
+                writer.write(namespaceBundle.getJavaSource());
             }
         } catch (IOException e) {
             reportMessage(CompilerMessageTemplates.J_0004.render(null, javaSourcePath.toAbsolutePath().toString()));
             throw new CompilerException(e);
-        }
-
-        // Write its contents
-        try (PrintWriter printWriter = new PrintWriter(javaSourcePath.toFile())) {
-            printWriter.print(namespaceBundle.getJavaSource());
-        } catch (FileNotFoundException e) {
-            // Should not happen
-            throw new RuntimeException(e);
         }
 
         // Compile it

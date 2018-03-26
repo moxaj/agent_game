@@ -6,7 +6,7 @@
 /agent_script
 /src/antlr
 /logs
-/.as_cache
+/as_cache
 gradlew
 gradlew.bat
 agent_script.iml

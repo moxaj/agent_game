@@ -21,7 +21,7 @@ public final class NamespaceAnalyzer extends CompilerProcessor implements ICompi
     /**
      * The set of imported namespace names.
      */
-    private Set<Symbol> importedNamespaceNames;
+    private Set<Symbol> namespaceNames;
 
     /**
      * The produced namespace definition.
@@ -35,7 +35,7 @@ public final class NamespaceAnalyzer extends CompilerProcessor implements ICompi
     @Override
     public void process(NamespaceBundle namespaceBundle) throws CompilerException {
         this.namespaceBundle = namespaceBundle;
-        importedNamespaceNames = new HashSet<>();
+        namespaceNames = new HashSet<>();
         new Visitor().visit(namespaceBundle.getParseTree());
     }
 
@@ -110,6 +110,7 @@ public final class NamespaceAnalyzer extends CompilerProcessor implements ICompi
 
             namespaceDefinition = new NamespaceDefinition(namespaceName, location);
             namespaceBundle.setNamespaceDefinition(namespaceDefinition);
+            namespaceNames.add(namespaceName);
 
             if (ctx.meta() != null) {
                 namespaceDefinition.getMeta().addAll(
@@ -150,7 +151,7 @@ public final class NamespaceAnalyzer extends CompilerProcessor implements ICompi
                     return null;
                 }
 
-                if (!NamespaceAnalyzer.this.importedNamespaceNames.add(importedNamespaceAlias)) {
+                if (!NamespaceAnalyzer.this.namespaceNames.add(importedNamespaceAlias)) {
                     reportMessage(A_0006.render(aliasLocation, importedNamespaceAlias));
                     return null;
                 }
@@ -158,7 +159,7 @@ public final class NamespaceAnalyzer extends CompilerProcessor implements ICompi
                 importedNamespaceNames.put(importedNamespaceAlias, importedNamespaceName);
             }
 
-            if (!NamespaceAnalyzer.this.importedNamespaceNames.add(importedNamespaceName)) {
+            if (!NamespaceAnalyzer.this.namespaceNames.add(importedNamespaceName)) {
                 reportMessage(A_0007.render(location, importedNamespaceName));
                 return null;
             }

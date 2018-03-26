@@ -29,14 +29,19 @@ public class NamespaceBundle {
     private final Map<Symbol, NamespaceDefinition> namespaceDefinitions;
 
     /**
-     * The namespace definition.
+     * The original agent script source.
      */
-    private NamespaceDefinition namespaceDefinition;
+    private String source;
 
     /**
      * The parse tree produced from the source.
      */
     private ParseTree parseTree;
+
+    /**
+     * The namespace definition.
+     */
+    private NamespaceDefinition namespaceDefinition;
 
     /**
      * The symbol table.
@@ -54,9 +59,24 @@ public class NamespaceBundle {
     private String javaSource;
 
     /**
+     * The path of the compiled .class file.
+     */
+    private Path javaClassPath;
+
+    /**
      * The compiled java class.
      */
     private Class<?> javaClass;
+
+    /**
+     * The path to the compiled class file, if it exists.
+     */
+    private Path cachedJavaClasspath;
+
+    /**
+     * Whether compiled namespace was cached.
+     */
+    private boolean cached;
 
     public NamespaceBundle(Path rootSourcePath, Path sourcePath, Map<Symbol, NamespaceDefinition> namespaceDefinitions) {
         this.rootSourcePath = rootSourcePath;
@@ -76,6 +96,27 @@ public class NamespaceBundle {
      */
     public Path getSourcePath() {
         return sourcePath;
+    }
+
+    /**
+     * @return the value of {@link #namespaceDefinitions}
+     */
+    public Map<Symbol, NamespaceDefinition> getNamespaceDefinitions() {
+        return namespaceDefinitions;
+    }
+
+    /**
+     * @return the value of {@link #source}
+     */
+    public String getSource() {
+        return source;
+    }
+
+    /**
+     * @param source the value of {@link #source}
+     */
+    public void setSource(String source) {
+        this.source = source;
     }
 
     /**
@@ -135,13 +176,6 @@ public class NamespaceBundle {
     }
 
     /**
-     * @return the value of {@link #namespaceDefinition}
-     */
-    public Map<Symbol, NamespaceDefinition> getNamespaceDefinitions() {
-        return namespaceDefinitions;
-    }
-
-    /**
      * @return the value of {@link #javaSource}
      */
     public String getJavaSource() {
@@ -156,6 +190,20 @@ public class NamespaceBundle {
     }
 
     /**
+     * @return the value of {@link #javaClassPath}
+     */
+    public Path getJavaClassPath() {
+        return javaClassPath;
+    }
+
+    /**
+     * @param javaClassPath the value of {@link #javaClassPath}
+     */
+    public void setJavaClassPath(Path javaClassPath) {
+        this.javaClassPath = javaClassPath;
+    }
+
+    /**
      * @return the value of {@link #javaClass}
      */
     public Class<?> getJavaClass() {
@@ -167,5 +215,33 @@ public class NamespaceBundle {
      */
     public void setJavaClass(Class<?> javaClass) {
         this.javaClass = javaClass;
+    }
+
+    /**
+     * @return the value of {@link #cachedJavaClasspath}
+     */
+    public Path getCachedJavaClasspath() {
+        return cachedJavaClasspath;
+    }
+
+    /**
+     * @param cachedJavaClasspath the value of {@link #cachedJavaClasspath}
+     */
+    public void setCachedJavaClasspath(Path cachedJavaClasspath) {
+        this.cachedJavaClasspath = cachedJavaClasspath;
+    }
+
+    /**
+     * @return the value of {@link #cached}
+     */
+    public boolean isCached() {
+        return cached;
+    }
+
+    /**
+     * @param cached the value of {@link #cached}
+     */
+    public void setCached(boolean cached) {
+        this.cached = cached;
     }
 }

@@ -143,11 +143,6 @@ public class CompilerMessageTemplate {
         ANALYZER,
 
         /**
-         * Emitting of java source.
-         */
-        EMITTER,
-
-        /**
          * Java compilation and class loading.
          */
         JAVA;

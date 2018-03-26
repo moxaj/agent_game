@@ -39,7 +39,6 @@ public final class Emitter extends CompilerProcessor {
         try {
             javaSource = new Formatter().formatSource(s);
         } catch (FormatterException e) {
-            System.out.println(s); // TODO remove this
             // Should not happen
             throw new RuntimeException();
         }

@@ -1,9 +1,6 @@
 package agent_script.compiler.java_compiler;
 
-import agent_script.compiler.CompilerException;
-import agent_script.compiler.CompilerMessageReporter;
-import agent_script.compiler.CompilerProcessor;
-import agent_script.compiler.NamespaceBundle;
+import agent_script.compiler.*;
 import agent_script.compiler.analyzer.namespace.NamespaceDefinition;
 
 import javax.tools.JavaFileObject;
@@ -32,20 +29,20 @@ public final class JavaCompiler extends CompilerProcessor {
     /**
      * The temporary directory where the .java and .class files reside.
      */
-    private final Path tempDirectoryPath;
+    private final Path tempDirectory;
 
     public JavaCompiler(CompilerMessageReporter messageReporter) {
         super(messageReporter);
 
         try {
-            tempDirectoryPath = Files.createTempDirectory("temp");
+            tempDirectory = Files.createTempDirectory("temp");
         } catch (IOException e) {
-            // TODO reportMessage "Could not create a necessary temporary directory."
+            messageReporter.report(CompilerMessageTemplates.J_0000.render(null));
             throw new CompilerException();
         }
 
         try {
-            addURL(tempDirectoryPath.toFile().toURI().toURL());
+            addURL(tempDirectory.toFile().toURI().toURL());
         } catch (MalformedURLException e) {
             // Should not happen
             throw new RuntimeException(e);
@@ -53,18 +50,16 @@ public final class JavaCompiler extends CompilerProcessor {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                Files.walk(tempDirectoryPath)
+                Files.walk(tempDirectory)
                         .sorted(Comparator.reverseOrder())
                         .map(Path::toFile)
                         .forEach(file -> {
                             if (!file.delete()) {
-                                // TODO reportMessage
-                                throw new CompilerException();
+                                reportMessage(CompilerMessageTemplates.J_0001.render(null, file.getAbsolutePath()));
                             }
                         });
             } catch (IOException e) {
-                // TODO reportMessage
-                throw new CompilerException();
+                reportMessage(CompilerMessageTemplates.J_0002.render(null, tempDirectory.toAbsolutePath().toString()));
             }
         }));
     }
@@ -103,12 +98,37 @@ public final class JavaCompiler extends CompilerProcessor {
         this.namespaceBundle = namespaceBundle;
 
         NamespaceDefinition namespaceDefinition = namespaceBundle.getNamespaceDefinition();
-
-        // Create the java source file
         String javaPackageName = namespaceDefinition.getName().getJavaPackageName();
         String javaClassName = namespaceDefinition.getName().getJavaClassName();
-        Path javaSourcePath = tempDirectoryPath.resolve(javaPackageName.replaceAll("\\.", "/")).resolve(javaClassName + ".java");
+        String qualifiedJavaClassName = javaPackageName + "." + javaClassName;
+        Path javaSourcePath = tempDirectory.resolve(javaPackageName.replaceAll("\\.", "/")).resolve(javaClassName + ".java");
+        Path javaClassPath = javaSourcePath.getParent().resolve(javaClassName + ".class");
 
+        namespaceBundle.setJavaClassPath(javaClassPath);
+
+        if (namespaceBundle.isCached()) {
+            // Copy the class file to the temp dir
+            Path cachedJavaClasspath = namespaceBundle.getCachedJavaClasspath();
+            try {
+                Files.createDirectories(javaClassPath.getParent());
+                Files.copy(cachedJavaClasspath, javaClassPath);
+
+                try {
+                    namespaceBundle.setJavaClass(Class.forName(qualifiedJavaClassName));
+                } catch (ClassNotFoundException e) {
+                    // Should not happen
+                    throw new RuntimeException(e);
+                }
+
+                return;
+            } catch (IOException e) {
+                reportMessage(CompilerMessageTemplates.J_0003.render(
+                        null, cachedJavaClasspath.toAbsolutePath().toString(), javaClassPath.toAbsolutePath().toString()));
+                throw new CompilerException(e);
+            }
+        }
+
+        // Create the java source file
         try {
             File javaSourceFile = javaSourcePath.toFile();
             if (!javaSourceFile.exists()) {
@@ -122,8 +142,8 @@ public final class JavaCompiler extends CompilerProcessor {
                 }
             }
         } catch (IOException e) {
-            // TODO reportMessage "Could not create a necessary temporary file."
-            throw new CompilerException();
+            reportMessage(CompilerMessageTemplates.J_0004.render(null, javaSourcePath.toAbsolutePath().toString()));
+            throw new CompilerException(e);
         }
 
         // Write its contents
@@ -135,22 +155,21 @@ public final class JavaCompiler extends CompilerProcessor {
         }
 
         // Compile it
-        // TODO logging
         javax.tools.JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fileManager = javaCompiler.getStandardFileManager(null, null, null);
         List<String> options = Arrays.asList(
                 "-classpath",
-                System.getProperty("java.class.path") + ";" + tempDirectoryPath.toAbsolutePath().toFile().toString());
+                System.getProperty("java.class.path") + ";" + tempDirectory.toAbsolutePath().toFile().toString());
         Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(
                 Collections.singletonList(javaSourcePath.toFile()));
         if (!javaCompiler.getTask(null, fileManager, null, options, null, compilationUnits).call()) {
-            // TODO reportMessage "Could not compile the game script."
+            // Should not happen
             throw new CompilerException();
         }
 
         // Load it
         try {
-            namespaceBundle.setJavaClass(ClassLoader.getSystemClassLoader().loadClass(javaPackageName + "." + javaClassName));
+            namespaceBundle.setJavaClass(ClassLoader.getSystemClassLoader().loadClass(qualifiedJavaClassName));
         } catch (ClassNotFoundException e) {
             // Should not happen
             throw new RuntimeException(e);

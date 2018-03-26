@@ -31,13 +31,15 @@ public final class Parser extends CompilerProcessor {
         Path sourcePath = namespaceBundle.getSourcePath();
         String sourcePathStr = sourcePath.toAbsolutePath().toString();
 
-        String scriptSource;
+        String source;
         try {
-            scriptSource = new String(Files.readAllBytes(sourcePath));
+            source = new String(Files.readAllBytes(sourcePath));
         } catch (IOException e) {
             reportMessage(P_0000.render(null, sourcePathStr));
             throw new CompilerException(e);
         }
+
+        namespaceBundle.setSource(source);
 
         ANTLRErrorListener errorListener = new BaseErrorListener() {
             @Override
@@ -48,7 +50,7 @@ public final class Parser extends CompilerProcessor {
             }
         };
 
-        AgentScriptLexer lexer = new AgentScriptLexer(CharStreams.fromString(scriptSource));
+        AgentScriptLexer lexer = new AgentScriptLexer(CharStreams.fromString(source));
         lexer.removeErrorListeners();
         lexer.addErrorListener(errorListener);
 

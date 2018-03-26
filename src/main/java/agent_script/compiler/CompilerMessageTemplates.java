@@ -20,6 +20,20 @@ public final class CompilerMessageTemplates {
             create(COMPILER, INFO, "compilation started with root source paths: %s");
     public static final CompilerMessageTemplate C_0004 =
             create(COMPILER, INFO, "compilation finished with %d error(s) in %.3f seconds");
+    public static final CompilerMessageTemplate C_0005 =
+            create(COMPILER, INFO, "could not access compiler cache directory at: '%s'");
+
+    // Java compiler
+    public static final CompilerMessageTemplate J_0000 =
+            create(JAVA, ERROR, "could not create a temporary directory for java compilation");
+    public static final CompilerMessageTemplate J_0001 =
+            create(JAVA, WARNING, "could not delete a temporary file: '%s'");
+    public static final CompilerMessageTemplate J_0002 =
+            create(JAVA, WARNING, "could not delete some temporary files at: '%s'");
+    public static final CompilerMessageTemplate J_0003 =
+            create(JAVA, ERROR, "could not copy a cached .class file from: '%s', to '%s'");
+    public static final CompilerMessageTemplate J_0004 =
+            create(JAVA, ERROR, "could not create a temporary .java source file: '%s'");
 
     // Parser
     public static final CompilerMessageTemplate P_0000 =

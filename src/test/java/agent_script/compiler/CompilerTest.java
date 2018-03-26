@@ -12,11 +12,11 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -35,22 +35,48 @@ public class CompilerTest {
      * Ignored test cases.
      */
     private static final Set<CompilerMessageTemplate> IGNORED_TEST_CASES =
-            new HashSet<>(Arrays.asList(CompilerMessageTemplates.C_0000, CompilerMessageTemplates.P_0000));
+            new HashSet<>(Arrays.asList(
+                    CompilerMessageTemplates.C_0000,
+                    CompilerMessageTemplates.P_0000,
+                    CompilerMessageTemplates.J_0000,
+                    CompilerMessageTemplates.J_0001,
+                    CompilerMessageTemplates.J_0002,
+                    CompilerMessageTemplates.J_0003,
+                    CompilerMessageTemplates.J_0004));
 
-    /**
-     * The compiler.
-     */
-    private ICompiler compiler;
+    static {
+        LOGGER.setUseParentHandlers(false);
+
+        ConsoleHandler consoleHandler = new ConsoleHandler();
+        consoleHandler.setFormatter(new SimpleFormatter() {
+            @Override
+            public synchronized String format(LogRecord logRecord) {
+                return String.format("[%1$tF %1$tT] [%2$-7s] %3$s %n",
+                        new Date(logRecord.getMillis()),
+                        logRecord.getLevel().getLocalizedName(),
+                        logRecord.getMessage()
+                );
+            }
+        });
+        LOGGER.addHandler(consoleHandler);
+    }
 
     /**
      * The root source paths for the compiler.
      */
-    private Path[] rootSourcePaths;
-
+    private final Path[] rootSourcePaths;
     /**
      * The compiler message id expected to be thrown.
      */
-    private String expectedCompilerMessageId;
+    private final String expectedCompilerMessageId;
+    /**
+     * The compiler cache directory.
+     */
+    private final Path cacheDirectory;
+    /**
+     * The compiler.
+     */
+    private ICompiler compiler;
 
     public CompilerTest(CompilerMessageTemplate expectedCompilerMessageTemplate)
             throws URISyntaxException, IOException {
@@ -63,6 +89,7 @@ public class CompilerTest {
                     .toArray(Path[]::new);
         }
         this.expectedCompilerMessageId = expectedCompilerMessageTemplate.getId();
+        this.cacheDirectory = Paths.get(".as_cache");
     }
 
     @Parameterized.Parameters(name = "{0}")
@@ -89,7 +116,7 @@ public class CompilerTest {
     @Before
     public void before() {
         // A fresh instance before each test just to be sure
-        compiler = new Compiler(LOGGER);
+        compiler = new Compiler(LOGGER, cacheDirectory);
     }
 
     @Test

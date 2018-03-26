@@ -65,9 +65,9 @@ public final class Compiler implements ICompiler {
      * @return the ordered namespace names
      */
     private List<NamespaceBundle> orderedNamespaceBundles(Map<Symbol, NamespaceBundle> namespaceBundles) {
-        Map<Symbol, NamespaceBundle> remainingNamespaceBundles = new HashMap<>(namespaceBundles);
         Set<Symbol> orderedNamespaceNames = new LinkedHashSet<>();
 
+        Map<Symbol, NamespaceBundle> remainingNamespaceBundles = new HashMap<>(namespaceBundles);
         while (!remainingNamespaceBundles.isEmpty()) {
             Symbol namespaceName = remainingNamespaceBundles.entrySet().stream()
                     .filter(entry -> orderedNamespaceNames.containsAll(

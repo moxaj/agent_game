@@ -38,12 +38,12 @@ public final class Compiler implements ICompiler {
     private static final String COMPILER_VERSION = "0001";
 
     /**
-     * The magic prefix with which the munge all emitted symbols.
+     * The magic prefix with which to munge all emitted symbols.
      */
     private static final String MAGIC_PREFIX = "_";
 
     /**
-     * The message reported.
+     * The message reporter.
      */
     private final CompilerMessageReporter messageReporter;
 
@@ -110,6 +110,13 @@ public final class Compiler implements ICompiler {
         return orderedNamespaceNames.stream().map(namespaceBundles::get).collect(Collectors.toList());
     }
 
+    /**
+     * Computes a cache key for a namespace bundle. Uses the name of the namespace, the current compiler
+     * version, and the hash of the source.
+     *
+     * @param namespaceBundle the namespace bundle
+     * @return the computed cache key
+     */
     private String toCacheKey(NamespaceBundle namespaceBundle) {
         MessageDigest messageDigest;
         try {

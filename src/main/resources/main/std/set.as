@@ -1,5 +1,9 @@
 namespace std.set
 
+//
+// Provides the implementation for the set datastructure.
+//
+
 #[native]
 function new()
     return "new java.util.HashSet<Object>()"

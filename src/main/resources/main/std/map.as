@@ -1,5 +1,9 @@
 namespace std.map
 
+//
+// Provides the implementation for the map datastructure.
+//
+
 #[native]
 function new()
     return "new java.util.HashMap<Object, Object>()"

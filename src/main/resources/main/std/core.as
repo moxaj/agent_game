@@ -1,5 +1,9 @@
 namespace std.core
 
+//
+// The core namespace.
+//
+
 #[private, native]
 constant RANDOM = "new java.util.Random()"
 

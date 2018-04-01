@@ -1,24 +1,30 @@
 namespace lib.agent
 
+//
+// Agent related extensions.
+//
+
 import std.core as core
+import std.vector as vector
+import std.math as math
 
 // Primitives
 
 #[private, native]
-constant STAY       = "agent_game.game.AgentAction.STAY"
+constant STAY = "agent_game.game.AgentAction.STAY"
 
 #[private, native]
-constant MOVE       = "agent_game.game.AgentAction.MOVE"
+constant MOVE = "agent_game.game.AgentAction.MOVE"
 
 #[private, native]
-constant TURN_LEFT  = "agent_game.game.AgentAction.TURN_LEFT"
+constant TURN_LEFT = "agent_game.game.AgentAction.TURN_LEFT"
 
 #[private, native]
 constant TURN_RIGHT = "agent_game.game.AgentAction.TURN_RIGHT"
 
 // Helper
 
-function or(action1, action2)
+function action_or(action1, action2)
     if action1 != STAY
         return action1
     else
@@ -26,21 +32,12 @@ function or(action1, action2)
     end
 end
 
-function distance_from(x, y, u, v)
-    distance = 0
-    if x < u
-        distance = distance + (u - x)
-    else
-        distance = distance + (x - u)
-    end
-
-    if y < v
-        distance = distance + (v - y)
-    else
-        distance = distance + (y - v)
-    end
-
-    return distance
+function distance_from(position1, position2)
+    x = vector::get(position1, 0)
+    y = vector::get(position1, 1)
+    u = vector::get(position2, 0)
+    v = vector::get(position2, 1)
+    return math::abs(u - x) + math::abs(y - v)
 end
 
 // Basic actions
@@ -63,33 +60,44 @@ end
 
 // Advanced actions
 
-function turn_towards(d1, d2)
-    return STAY // TODO
+function turn_towards(direction1, direction2)
+    // Naive version for now
+    if direction1 == direction2
+        return stay()
+    else
+        return turn_left()
+    end
 end
 
-function move_towards(x, y, d, u, v)
+function move_towards(position1, direction, position2)
+    x = vector::get(position1, 0)
+    y = vector::get(position1, 1)
+
+    u = vector::get(position2, 0)
+    v = vector::get(position2, 1)
+
     if x != u
         // Move horizontally
 
-        d2 = 0
+        direction2 = 0
         if x < u
-            d2 = 1
+            direction2 = 1
         else
-            d2 = 3
+            direction2 = 3
         end
 
-        return or(turn_towards(d, d2), move())
+        return action_or(turn_towards(direction, direction2), move())
     else if y != v
         // Move vertically
 
-        d2 = 0
+        direction2 = 0
         if y < v
-            d2 = 0
+            direction2 = 0
         else
-            d2 = 2
+            direction2 = 2
         end
 
-        return or(turn_towards(d, d2), move())
+        return action_or(turn_towards(direction, direction2), move())
     else
         return stay()
     end

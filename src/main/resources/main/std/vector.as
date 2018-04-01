@@ -1,5 +1,9 @@
 namespace std.vector
 
+//
+// Provides the implementation for the vector datastructure.
+//
+
 #[native]
 function new()
     return "new java.util.ArrayList<Object>()"

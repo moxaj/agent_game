@@ -1,0 +1,24 @@
+apply plugin: 'antlr'
+
+dependencies {
+    // Java compiler
+    compile group: 'org.apache.commons', name: 'commons-jci-eclipse', version: '1.1'
+
+    // Parsing
+    antlr group: 'org.antlr', name: 'antlr4', version: '4.7.1'
+
+    // String templating
+    compile group: 'org.antlr', name: 'ST4', version: '4.0.8'
+
+    // Unit testing
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+sourceSets.main {
+    resources.srcDirs += 'src/main/antlr'
+}
+
+generateGrammarSource {
+    arguments += ['-package', 'agent_script.antlr', '-visitor', '-no-listener']
+    outputDirectory = project.file('src/main/java/agent_script/antlr')
+}

@@ -1,0 +1,36 @@
+loggingSettings:
+  outputPath: logs
+
+simulatorSettings:
+  statisticsSettings:
+    outputPath: statistics
+
+  teams:
+    - name: team1
+      agents:
+        - name: idle-agent
+          rootSourcePath: agent
+          mainFunctionName: agent.idle::main
+        - name: random-agent
+          rootSourcePath: agent
+          mainFunctionName: agent.random::main
+    - name: team2
+      agents:
+        - name: scaredy-agent
+          rootSourcePath: agent
+          mainFunctionName: agent.scaredy::main
+        - name: greedy-agent
+          rootSourcePath: agent
+          mainFunctionName: agent.greedy::main
+
+  arenaSettings:
+    width: 30
+    height: 30
+
+  gameSettings:
+    timeQuota: 1000
+    initialEnergy: 500
+    energyLoss: 1
+    energyRefill: 200
+    energyFrequency: 10
+    visionRange: 7

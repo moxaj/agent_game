@@ -1,12 +1,5 @@
-.gradle
-.idea
-/build
-/gradle
-/out
-/agent_script
-/src/antlr
-/logs
+/.gradle
+/.idea
 /as_cache
-gradlew
-gradlew.bat
-agent_script.iml
+/logs
+/statistics

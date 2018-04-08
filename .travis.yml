@@ -15,7 +15,9 @@ deploy:
   provider: releases
   api_key:
     secure: $GITHUB_TOKEN
-  file: agent_runner/build/libs/agent-app.jar
+  file:
+    - agent_runner/build/libs/agent-app.jar
+    - agent_runner/src/main/resources/example_settings
   skip_cleanup: true
   on:
     tags: true

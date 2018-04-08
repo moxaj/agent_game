@@ -43,24 +43,19 @@ public class ObservableSimulation {
     private final ObjectProperty<State> state;
 
     /**
-     * The current round.
-     */
-    private final IntegerProperty round;
-
-    /**
      * The speed of the simulation.
      */
     private final IntegerProperty speed;
 
     /**
+     * The counter used by the future to track the elapsed time.
+     */
+    private final IntegerProperty counter;
+
+    /**
      * The simulation future.
      */
     private final ScheduledFuture<?> future;
-
-    /**
-     * The counter used by the future to track the elapsed time.
-     */
-    private int counter;
 
     /**
      * The simulator.
@@ -77,21 +72,21 @@ public class ObservableSimulation {
     public ObservableSimulation(Runnable refreshRunnable) {
         this.refreshRunnable = refreshRunnable;
         this.state = new SimpleObjectProperty<>(State.NOT_LOADED);
-        this.round = new SimpleIntegerProperty(-1);
         this.speed = new SimpleIntegerProperty(0);
+        this.counter = new SimpleIntegerProperty(0);
 
         int speedModulo = (int) Math.pow(2, MAX_SPEED);
-        this.future = executorService.scheduleAtFixedRate(() -> {
-            counter = (counter + 1) % speedModulo;
-            if (state.get() == ObservableSimulation.State.RUNNING && (counter % Math.pow(2, MAX_SPEED - speed.get())) == 0) {
-                Platform.runLater(this::step);
+        this.future = executorService.scheduleAtFixedRate(() -> Platform.runLater(() -> {
+            counter.set((counter.get() + 1) % speedModulo);
+            if (state.get() == State.RUNNING && (counter.get() % Math.pow(2, MAX_SPEED - speed.get())) == 0) {
+                step();
             }
-        }, 0, (long) (BASE_FRAME_TIME_MS / speedModulo), TimeUnit.MILLISECONDS);
+        }), 0, (long) (BASE_FRAME_TIME_MS / speedModulo), TimeUnit.MILLISECONDS);
     }
 
     public void setSimulator(Simulator simulator) {
         this.simulator = simulator;
-        this.observableGameState = new ObservableGameState(simulator.getGameState(), roundProperty());
+        this.observableGameState = new ObservableGameState(simulator.getGameState(), counter);
     }
 
     public GameState getGameState() {
@@ -108,14 +103,6 @@ public class ObservableSimulation {
 
     public ObjectProperty<State> stateProperty() {
         return state;
-    }
-
-    public int getRound() {
-        return round.get();
-    }
-
-    public IntegerProperty roundProperty() {
-        return round;
     }
 
     public int getSpeed() {
@@ -142,8 +129,7 @@ public class ObservableSimulation {
         simulator.restart();
         state.set(State.PAUSED);
         speed.set(0);
-        round.set(0);
-        counter = 0;
+        counter.set(0);
         refreshRunnable.run();
     }
 
@@ -157,7 +143,6 @@ public class ObservableSimulation {
 
     public void step() {
         simulator.step();
-        round.set(round.get() + 1);
         refreshRunnable.run();
     }
 

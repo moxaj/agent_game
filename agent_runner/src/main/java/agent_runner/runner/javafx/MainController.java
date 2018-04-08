@@ -10,6 +10,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -351,7 +352,8 @@ public class MainController {
 
         simulation.getGameState().getAgents().stream()
                 .sorted(Comparator.comparing(Agent::getIndex))
-                .forEach(agent -> agentsTableViewItems.add(new ObservableAgent(agent, simulation.roundProperty())));
+                .forEach(agent ->
+                        agentsTableViewItems.add(new ObservableAgent(agent, simulation.getObservableGameState().roundProperty())));
     }
 
     private StringBinding makeInspectionBinding(Function<ObservableAgent, String> agentStringFunction) {
@@ -373,7 +375,9 @@ public class MainController {
                             throw new RuntimeException();
                     }
                 },
-                simulation.stateProperty(), simulation.roundProperty(), agentsTableView.getSelectionModel().selectedItemProperty());
+                simulation.stateProperty(),
+                simulation.getObservableGameState().roundProperty(),
+                agentsTableView.getSelectionModel().selectedItemProperty());
     }
 
     private void setupAgentInspections() {
@@ -413,6 +417,7 @@ public class MainController {
         populateGameLabels();
         populateAgentTableView();
         setupVisualizer();
+        setupAgentInspections();
     }
 
     private void exit() {

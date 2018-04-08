@@ -9,3 +9,13 @@ cache:
     - $HOME/.gradle/wrapper/
 notifications:
   email: false
+before_deploy:
+  - gradle :agent_runner:shadowJar
+deploy:
+  provider: releases
+  api_key:
+    secure: $GITHUB_TOKEN
+  file: agent_runner/build/libs/agent-app.jar
+  skip_cleanup: true
+  on:
+    tags: true

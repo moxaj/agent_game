@@ -262,7 +262,19 @@ public class MainController {
                 (int) Math.pow(2, simulation.getSpeed()), simulation.speedProperty()).asString("%2dx"));
     }
 
-    private void populateGameParametersTextFields() {
+    private void setupGameParameterTextFields() {
+        ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
+                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                simulation.stateProperty());
+        timeQuotaTextField.disableProperty().bind(disable);
+        initialEnergyTextField.disableProperty().bind(disable);
+        energyLossTextField.disableProperty().bind(disable);
+        energyRefillTextField.disableProperty().bind(disable);
+        energyFrequencyTextField.disableProperty().bind(disable);
+        visionRangeTextField.disableProperty().bind(disable);
+    }
+
+    private void populateGameParameterTextFields() {
         GameParameters gameParameters = simulation.getGameState().getParameters();
         timeQuotaTextField.setText(Integer.toString(gameParameters.getTimeQuota()));
         initialEnergyTextField.setText(Integer.toString(gameParameters.getInitialEnergy()));
@@ -272,12 +284,26 @@ public class MainController {
         visionRangeTextField.setText(Integer.toString(gameParameters.getVisionRange()));
     }
 
+    private void setupGameLabels() {
+        ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
+                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                simulation.stateProperty());
+        roundTextField.disableProperty().bind(disable);
+        finishedTextField.disableProperty().bind(disable);
+    }
+
     private void populateGameLabels() {
         roundTextField.textProperty().bind(simulation.getObservableGameState().roundProperty().asString());
         finishedTextField.textProperty().bind(simulation.getObservableGameState().finishedProperty().asString());
     }
 
-    private void setupAgentsTableView() {
+    private void setupAgentTableView() {
+        ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
+                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                simulation.stateProperty());
+        agentsTableView.disableProperty().bind(disable);
+        agentsTableView.setPlaceholder(new Label(""));
+
         ObservableList<TableColumn<ObservableAgent, ?>> agentsTableViewColumns = agentsTableView.getColumns();
 
         TableColumn<ObservableAgent, Number> indexColumn = new TableColumn<>("Index");
@@ -319,7 +345,7 @@ public class MainController {
         agentsTableViewColumns.add(energyColumn);
     }
 
-    private void populateAgentsTableView() {
+    private void populateAgentTableView() {
         ObservableList<ObservableAgent> agentsTableViewItems = agentsTableView.getItems();
         agentsTableViewItems.clear();
 
@@ -350,10 +376,19 @@ public class MainController {
                 simulation.stateProperty(), simulation.roundProperty(), agentsTableView.getSelectionModel().selectedItemProperty());
     }
 
-    private void setupInspections() {
+    private void setupAgentInspections() {
+        ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
+                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                simulation.stateProperty());
+
         memoryTextArea.textProperty().bind(makeInspectionBinding(observableAgent -> observableAgent.getMemory().toString()));
+        memoryTextArea.disableProperty().bind(disable);
+
         teamMemoryTextArea.textProperty().bind(makeInspectionBinding(observableAgent -> observableAgent.getTeamMemory().toString()));
+        teamMemoryTextArea.disableProperty().bind(disable);
+
         statisticsTextArea.textProperty().bind(makeInspectionBinding(observableAgent -> observableAgent.getStatistics().toString()));
+        statisticsTextArea.disableProperty().bind(disable);
     }
 
     private void setupVisualizer() {
@@ -374,9 +409,9 @@ public class MainController {
         simulation.setSimulator(new DefaultLoader().load(chosenFile.toPath()));
         simulation.restart();
 
-        populateGameParametersTextFields();
+        populateGameParameterTextFields();
         populateGameLabels();
-        populateAgentsTableView();
+        populateAgentTableView();
         setupVisualizer();
     }
 
@@ -391,8 +426,9 @@ public class MainController {
         simulation = new ObservableSimulation(() -> Platform.runLater(visualizer::repaint));
         setupMenu();
         setupToolbar();
-        setupAgentsTableView();
-        setupInspections();
+        setupGameParameterTextFields();
+        setupGameLabels();
+        setupAgentTableView();
     }
 
     public void onStageClosed() {

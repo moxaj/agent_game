@@ -304,6 +304,7 @@ public class DefaultSimulator implements Simulator {
     private void eliminateAgent(Agent agent, Agent.State agentState, String logMessage) {
         gameState.getArena().getCell(agent.getX(), agent.getY()).setAgent(null);
         agent.setState(agentState);
+        agent.setEnergy(0);
         logger.log(Level.INFO, logMessage);
     }
 

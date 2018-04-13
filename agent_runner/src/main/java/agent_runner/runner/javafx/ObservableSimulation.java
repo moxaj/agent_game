@@ -174,17 +174,17 @@ public class ObservableSimulation {
         NOT_LOADED,
 
         /**
-         * The current simulation is stopped.
+         * The simulation is stopped.
          */
         STOPPED,
 
         /**
-         * The current simulation is paused.
+         * The simulation is paused.
          */
         PAUSED,
 
         /**
-         * The current simulation is running.
+         * The simulation is running.
          */
         RUNNING
     }

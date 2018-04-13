@@ -7,7 +7,13 @@ import org.apache.commons.cli.*;
 
 import java.nio.file.Paths;
 
+/**
+ * Represents the main entry point of the agent application.
+ */
 public class Launcher {
+    /**
+     * @return the command line options
+     */
     private static Options makeOptions() {
         Options options = new Options();
 
@@ -32,6 +38,11 @@ public class Launcher {
         return options;
     }
 
+    /**
+     * @param runnerMode  the {@link RunnerMode}
+     * @param commandLine the parsed command line
+     * @return the appropriate {@link Runner} instance
+     */
     private static Runner makeRunner(RunnerMode runnerMode, CommandLine commandLine) {
         switch (runnerMode) {
             case HEADLESS:
@@ -44,6 +55,11 @@ public class Launcher {
         }
     }
 
+    /**
+     * Runs the launcher.
+     *
+     * @param args the command line arguments
+     */
     public static void main(String[] args) {
         Options options = makeOptions();
 
@@ -68,9 +84,24 @@ public class Launcher {
         makeRunner(runnerMode, commandLine).run();
     }
 
+    /**
+     * Represents an available {@link Runner}.
+     */
     private enum RunnerMode {
-        HEADLESS, JAVA_FX;
+        /**
+         * Headless mode which provides no visuals.
+         */
+        HEADLESS,
 
+        /**
+         * A mode with visual provided by a JavaFX application.
+         */
+        JAVA_FX;
+
+        /**
+         * @param s the name of the mode
+         * @return the parsed mode
+         */
         public static RunnerMode parse(String s) {
             if ("headless".equals(s)) {
                 return HEADLESS;

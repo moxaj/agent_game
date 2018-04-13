@@ -345,7 +345,7 @@ public class DefaultSimulator implements Simulator {
 
     @Override
     public void restart() {
-        logger.log(Level.INFO, "simulation restart");
+        logger.log(Level.INFO, "simulation restarted");
         gameState.getArena().reset();
         gameState.getAgents().forEach(this::spawnAgent);
         gameState.setFinished(false);

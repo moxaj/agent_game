@@ -46,6 +46,9 @@ public class ObservableGameState {
 
         this.round = new SimpleIntegerProperty();
         this.round.bind(Bindings.createIntegerBinding(gameState::getRound, observables));
+        this.round.addListener((observable, oldValue, newValue) -> {
+            // Only here to force certain bindings to update
+        });
 
         this.finished = new SimpleBooleanProperty();
         this.finished.bind(Bindings.createBooleanBinding(gameState::isFinished, observables));

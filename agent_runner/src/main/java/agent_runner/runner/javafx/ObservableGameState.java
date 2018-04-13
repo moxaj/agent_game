@@ -13,6 +13,9 @@ import javafx.beans.property.SimpleIntegerProperty;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Represents an observable {@link GameState}.
+ */
 public class ObservableGameState {
     /**
      * The participating agents.

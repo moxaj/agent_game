@@ -175,4 +175,8 @@ public class ObservableAgent {
     public ObjectProperty<Agent.State> stateProperty() {
         return state;
     }
+
+    public boolean isEliminated() {
+        return state.get() != Agent.State.ALIVE;
+    }
 }

@@ -7,14 +7,14 @@ import agent_game.game.GameState;
  */
 public interface Simulator {
     /**
-     * Stops the simulator.
+     * Terminates the simulator.
      */
-    void stop();
+    void shutdown();
 
     /**
-     * Restarts the simulator.
+     * Resets the simulator.
      */
-    void restart();
+    void reset();
 
     /**
      * Steps the simulator.

@@ -37,7 +37,7 @@ public final class HeadlessRunner implements Runner {
             return;
         }
 
-        simulator.restart();
+        simulator.reset();
         while (!simulator.getGameState().isFinished()) {
             simulator.step();
 

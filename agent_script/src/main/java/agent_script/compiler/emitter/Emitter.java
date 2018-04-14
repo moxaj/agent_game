@@ -228,7 +228,7 @@ public final class Emitter extends BaseCompilerProcessor {
         @Override
         public String visitConstantDefinition(AgentScriptParser.ConstantDefinitionContext ctx) {
             NamespaceDefinition namespaceDefinition = namespaceBundle.getNamespaceDefinition();
-            Symbol constantName = Symbol.asNameSymbol(ctx.nameSymbol.getText());
+            Symbol constantName = Symbol.parseNameSymbol(ctx.nameSymbol.getText());
             assert constantName != null;
             return new ST("<visibility> static final Object <name> = <value>;")
                     .add("visibility", namespaceDefinition.getConstantDefinitions().get(constantName).isPrivate() ? "private" : "public")
@@ -240,7 +240,7 @@ public final class Emitter extends BaseCompilerProcessor {
         @Override
         public String visitFunctionDefinition(AgentScriptParser.FunctionDefinitionContext ctx) {
             NamespaceDefinition namespaceDefinition = namespaceBundle.getNamespaceDefinition();
-            Symbol functionName = Symbol.asNameSymbol(ctx.nameSymbol.getText());
+            Symbol functionName = Symbol.parseNameSymbol(ctx.nameSymbol.getText());
             assert functionName != null;
             FunctionDefinition functionDefinition = namespaceDefinition.getFunctionDefinitions().get(functionName);
             return new ST("" +
@@ -271,7 +271,7 @@ public final class Emitter extends BaseCompilerProcessor {
         @Override
         public String visitAssignStatement(AgentScriptParser.AssignStatementContext ctx) {
             Map<ParseTree, Set<Symbol>> symbolTable = namespaceBundle.getSymbolTable();
-            Symbol variableName = Symbol.asNameSymbol(ctx.nameSymbol.getText());
+            Symbol variableName = Symbol.parseNameSymbol(ctx.nameSymbol.getText());
             assert variableName != null;
             return new ST("<type> <name> = <value>;")
                     .add("type", symbolTable.get(ctx).contains(variableName) ? "" : "Object")
@@ -334,7 +334,7 @@ public final class Emitter extends BaseCompilerProcessor {
 
         @Override
         public String visitFunctionCallStatement(AgentScriptParser.FunctionCallStatementContext ctx) {
-            Symbol functionName = Symbol.asMaybeQualifiedSymbol(ctx.functionName.getText());
+            Symbol functionName = Symbol.parseMaybeQualifiedSymbol(ctx.functionName.getText());
             assert functionName != null;
             return new ST("<expression>;")
                     .add("expression", visitFunctionCall(resolvedFunctionDefinition(functionName).getName(), ctx.argumentExpressions))
@@ -382,7 +382,7 @@ public final class Emitter extends BaseCompilerProcessor {
 
         @Override
         public String visitSymbolExpression(AgentScriptParser.SymbolExpressionContext ctx) {
-            Symbol symbolName = Symbol.asMaybeQualifiedSymbol(ctx.symbol.getText());
+            Symbol symbolName = Symbol.parseMaybeQualifiedSymbol(ctx.symbol.getText());
             assert symbolName != null;
             return DefaultCompiler.munge(symbolName.toString());
         }
@@ -413,7 +413,7 @@ public final class Emitter extends BaseCompilerProcessor {
 
         @Override
         public String visitFunctionCallExpression(AgentScriptParser.FunctionCallExpressionContext ctx) {
-            Symbol functionName = Symbol.asMaybeQualifiedSymbol(ctx.functionName.getText());
+            Symbol functionName = Symbol.parseMaybeQualifiedSymbol(ctx.functionName.getText());
             assert functionName != null;
             return visitFunctionCall(resolvedFunctionDefinition(functionName).getName(), ctx.argumentExpressions);
         }

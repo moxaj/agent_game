@@ -53,6 +53,6 @@ public final class FunctionDefinition extends ElementDefinition {
      * @return whether the function has a 'macro' meta
      */
     public boolean isMacro() {
-        return getMeta().contains(Symbol.asNameSymbol("macro"));
+        return meta.contains(Symbol.parseNameSymbol("macro"));
     }
 }

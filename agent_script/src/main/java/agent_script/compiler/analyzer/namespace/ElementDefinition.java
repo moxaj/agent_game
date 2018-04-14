@@ -13,17 +13,17 @@ public abstract class ElementDefinition {
     /**
      * The name of the element.
      */
-    private final Symbol name;
+    protected final Symbol name;
 
     /**
      * The location of the element.
      */
-    private final Location location;
+    protected final Location location;
 
     /**
      * The metadata associated with the element.
      */
-    private final Set<Symbol> meta = new HashSet<>();
+    protected final Set<Symbol> meta = new HashSet<>();
 
     public ElementDefinition(Symbol name, Location location) {
         this.name = name;
@@ -55,13 +55,13 @@ public abstract class ElementDefinition {
      * @return if the element has a 'native' metadata
      */
     public boolean isNative() {
-        return getMeta().contains(Symbol.asNameSymbol("native"));
+        return meta.contains(Symbol.parseNameSymbol("native"));
     }
 
     /**
      * @return if the element has a 'private' metadata
      */
     public boolean isPrivate() {
-        return getMeta().contains(Symbol.asNameSymbol("private"));
+        return meta.contains(Symbol.parseNameSymbol("private"));
     }
 }

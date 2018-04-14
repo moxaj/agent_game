@@ -58,43 +58,64 @@ public final class Symbol {
     }
 
     /**
-     * Parses the symbol as a namespace symbol.
+     * Parses the string as a namespace symbol.
      *
      * @param s the string to parse
      * @return the namespace symbol or null
      */
-    public static Symbol asNamespaceSymbol(String s) {
+    public static Symbol parseNamespaceSymbol(String s) {
         return s.contains(NAMESPACE_SEPARATOR) ? null : create(s.split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR)), null);
     }
 
     /**
-     * Parses the symbol as a name symbol.
+     * Parses the string as a name symbol.
      *
      * @param s the string to parse
      * @return the name symbol or null
      */
-    public static Symbol asNameSymbol(String s) {
+    public static Symbol parseNameSymbol(String s) {
         return s.contains(NAMESPACE_SEPARATOR)
                 ? null
                 : s.contains(NAMESPACE_FRAGMENT_SEPARATOR) ? null : create(new String[0], s);
     }
 
     /**
-     * Parses the symbol as a potentially qualified symbol symbol.
+     * Parses the string as a potentially qualified symbol.
      *
      * @param s the string to parse
      * @return the potentially qualified symbol or null
      */
-    public static Symbol asMaybeQualifiedSymbol(String s) {
-        String[] symbolParts = s.split(NAMESPACE_SEPARATOR);
-        if (symbolParts.length == 1) {
-            symbolParts = symbolParts[0].split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR));
-            return symbolParts.length != 1
+    public static Symbol parseMaybeQualifiedSymbol(String s) {
+        String[] fragments = s.split(NAMESPACE_SEPARATOR);
+        if (fragments.length == 1) {
+            fragments = fragments[0].split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR));
+            return fragments.length != 1
                     ? null
-                    : new Symbol(new String[0], symbolParts[0]);
+                    : new Symbol(new String[0], fragments[0]);
         }
 
-        return new Symbol(symbolParts[0].split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR)), symbolParts[1]);
+        return new Symbol(fragments[0].split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR)), fragments[1]);
+    }
+
+    /**
+     * Parses the string as a qualified symbol.
+     *
+     * @param s the string to parse
+     * @return the qualified symbol or null
+     */
+    public static Symbol parseQualifiedSymbolUnsafe(String s) {
+        String[] fragments = s.split(NAMESPACE_SEPARATOR);
+        if (fragments.length != 2) {
+            return null;
+        }
+
+        String[] namespaceFragments = fragments[0].split(NAMESPACE_FRAGMENT_SEPARATOR);
+        fragments = fragments[1].split(NAMESPACE_FRAGMENT_SEPARATOR);
+        if (fragments.length > 0) {
+            return null;
+        }
+
+        return create(namespaceFragments, fragments[0]);
     }
 
     /**
@@ -129,14 +150,14 @@ public final class Symbol {
      * @return whether the symbol represents a namespace
      */
     public boolean isNamespaceSymbol() {
-        return getNameFragment() == null;
+        return nameFragment == null;
     }
 
     /**
      * @return whether the symbol an unqualified symbol
      */
     public boolean isNameSymbol() {
-        return getNamespaceFragments().length == 0;
+        return namespaceFragments.length == 0;
     }
 
     /**

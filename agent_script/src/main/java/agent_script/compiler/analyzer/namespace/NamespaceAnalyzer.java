@@ -48,7 +48,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
          */
         private /*static*/ final Set<Symbol> KNOWN_META_SYMBOLS =
                 Arrays.stream(new String[]{"private", "native", "macro"})
-                        .map(Symbol::asNameSymbol)
+                        .map(Symbol::parseNameSymbol)
                         .collect(Collectors.toSet());
 
         /**
@@ -77,7 +77,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
         @Override
         public Void visitMeta(AgentScriptParser.MetaContext ctx) {
             Map<Symbol, List<Token>> groupedMetaSymbols = ctx.metaSymbols.stream()
-                    .collect(Collectors.groupingBy(metaSymbol -> Symbol.asNameSymbol(metaSymbol.getText())));
+                    .collect(Collectors.groupingBy(metaSymbol -> Symbol.parseNameSymbol(metaSymbol.getText())));
 
             groupedMetaSymbols.forEach((metaName, metaSymbols) -> {
                 if (metaSymbols.size() > 1) {
@@ -98,7 +98,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
         public Void visitNamespaceDefinition(AgentScriptParser.NamespaceDefinitionContext ctx) {
             Location location = getLocation(ctx.nameSymbol);
             String namespaceNameText = ctx.nameSymbol.getText();
-            Symbol namespaceName = Symbol.asNamespaceSymbol(namespaceNameText);
+            Symbol namespaceName = Symbol.parseNamespaceSymbol(namespaceNameText);
             if (namespaceName == null) {
                 reportMessage(A_0002.render(location, namespaceNameText));
                 throw new CompilerException();
@@ -118,7 +118,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
                         ctx.meta().metaSymbols
                                 .stream()
                                 .map(Token::getText)
-                                .map(Symbol::asNameSymbol)
+                                .map(Symbol::parseNameSymbol)
                                 .collect(Collectors.toList()));
             }
 
@@ -129,7 +129,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
         public Void visitImportDeclaration(AgentScriptParser.ImportDeclarationContext ctx) {
             Location location = getLocation(ctx.nameSymbol);
             String importedNamespaceNameText = ctx.nameSymbol.getText();
-            Symbol importedNamespaceName = Symbol.asNamespaceSymbol(importedNamespaceNameText);
+            Symbol importedNamespaceName = Symbol.parseNamespaceSymbol(importedNamespaceNameText);
             if (importedNamespaceName == null) {
                 reportMessage(A_0002.render(location, importedNamespaceNameText));
                 return null;
@@ -146,7 +146,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
                 Location aliasLocation = getLocation(ctx.aliasSymbol);
 
                 String importedNamespaceAliasText = ctx.aliasSymbol.getText();
-                Symbol importedNamespaceAlias = Symbol.asNamespaceSymbol(importedNamespaceAliasText);
+                Symbol importedNamespaceAlias = Symbol.parseNamespaceSymbol(importedNamespaceAliasText);
                 if (importedNamespaceAlias == null) {
                     reportMessage(A_0005.render(aliasLocation, importedNamespaceAliasText));
                     return null;
@@ -173,7 +173,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
         public Void visitConstantDefinition(AgentScriptParser.ConstantDefinitionContext ctx) {
             Location location = getLocation(ctx.nameSymbol);
             String constantNameText = ctx.nameSymbol.getText();
-            Symbol constantName = Symbol.asNameSymbol(constantNameText);
+            Symbol constantName = Symbol.parseNameSymbol(constantNameText);
             if (constantName == null) {
                 reportMessage(A_0008.render(location, constantNameText));
                 return null;
@@ -186,7 +186,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
                         ctx.meta().metaSymbols
                                 .stream()
                                 .map(Token::getText)
-                                .map(Symbol::asNameSymbol)
+                                .map(Symbol::parseNameSymbol)
                                 .collect(Collectors.toList()));
             }
 
@@ -201,7 +201,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
         public Void visitFunctionDefinition(AgentScriptParser.FunctionDefinitionContext ctx) {
             Location location = getLocation(ctx.nameSymbol);
             String functionNameText = ctx.nameSymbol.getText();
-            Symbol functionName = Symbol.asNameSymbol(functionNameText);
+            Symbol functionName = Symbol.parseNameSymbol(functionNameText);
             if (functionName == null) {
                 reportMessage(A_0010.render(location, functionNameText));
                 return null;
@@ -215,7 +215,7 @@ public final class NamespaceAnalyzer extends BaseCompilerProcessor {
                         ctx.meta().metaSymbols
                                 .stream()
                                 .map(Token::getText)
-                                .map(Symbol::asNameSymbol)
+                                .map(Symbol::parseNameSymbol)
                                 .collect(Collectors.toList()));
             }
 

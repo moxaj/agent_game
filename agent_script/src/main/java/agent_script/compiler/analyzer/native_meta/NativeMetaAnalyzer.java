@@ -52,20 +52,20 @@ public final class NativeMetaAnalyzer extends BaseCompilerProcessor {
                     .filter(tree -> tree instanceof AgentScriptParser.ConstantDefinitionContext)
                     .findFirst()
                     .ifPresent(tree -> constantsUsingNative.add(
-                            Symbol.asNameSymbol(((AgentScriptParser.ConstantDefinitionContext) tree).nameSymbol.getText())));
+                            Symbol.parseNameSymbol(((AgentScriptParser.ConstantDefinitionContext) tree).nameSymbol.getText())));
 
             ancestorTrees.stream()
                     .filter(tree -> tree instanceof AgentScriptParser.FunctionDefinitionContext)
                     .findFirst()
                     .ifPresent(tree -> functionsUsingNative.add(
-                            Symbol.asNameSymbol(((AgentScriptParser.FunctionDefinitionContext) tree).nameSymbol.getText())));
+                            Symbol.parseNameSymbol(((AgentScriptParser.FunctionDefinitionContext) tree).nameSymbol.getText())));
         }
 
         @Override
         public Void visitConstantDefinition(AgentScriptParser.ConstantDefinitionContext ctx) {
             super.visitConstantDefinition(ctx);
 
-            Symbol constantName = Symbol.asNameSymbol(ctx.nameSymbol.getText());
+            Symbol constantName = Symbol.parseNameSymbol(ctx.nameSymbol.getText());
             if (constantName == null) {
                 return null;
             }
@@ -87,7 +87,7 @@ public final class NativeMetaAnalyzer extends BaseCompilerProcessor {
         public Void visitFunctionDefinition(AgentScriptParser.FunctionDefinitionContext ctx) {
             super.visitFunctionDefinition(ctx);
 
-            Symbol functionName = Symbol.asNameSymbol(ctx.nameSymbol.getText());
+            Symbol functionName = Symbol.parseNameSymbol(ctx.nameSymbol.getText());
             if (functionName == null) {
                 return null;
             }

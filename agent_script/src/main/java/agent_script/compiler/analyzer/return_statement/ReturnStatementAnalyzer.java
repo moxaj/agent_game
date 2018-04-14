@@ -114,7 +114,7 @@ public class ReturnStatementAnalyzer extends BaseCompilerProcessor {
 
         @Override
         public Void visitFunctionDefinition(AgentScriptParser.FunctionDefinitionContext ctx) {
-            Symbol functionName = Symbol.asNameSymbol(ctx.nameSymbol.getText());
+            Symbol functionName = Symbol.parseNameSymbol(ctx.nameSymbol.getText());
             if (functionName == null) {
                 return null;
             }

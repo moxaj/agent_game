@@ -97,7 +97,7 @@ public final class ReferenceAnalyzer extends BaseCompilerProcessor {
 
             Location location = getLocation(functionNameToken);
             String functionNameText = functionNameToken.getText();
-            Symbol functionName = Symbol.asMaybeQualifiedSymbol(functionNameText);
+            Symbol functionName = Symbol.parseMaybeQualifiedSymbol(functionNameText);
             if (functionName == null) {
                 reportMessage(A_0010.render(location, functionNameText));
                 return;
@@ -143,7 +143,7 @@ public final class ReferenceAnalyzer extends BaseCompilerProcessor {
 
         @Override
         public Void visitImportDeclaration(AgentScriptParser.ImportDeclarationContext ctx) {
-            Symbol namespaceName = Symbol.asNamespaceSymbol(ctx.nameSymbol.getText());
+            Symbol namespaceName = Symbol.parseNamespaceSymbol(ctx.nameSymbol.getText());
             if (!namespaceDefinitions.containsKey(namespaceName)) {
                 reportMessage(A_0019.render(getLocation(ctx.nameSymbol), namespaceName));
                 return null;
@@ -156,7 +156,7 @@ public final class ReferenceAnalyzer extends BaseCompilerProcessor {
         public Void visitFunctionDefinition(AgentScriptParser.FunctionDefinitionContext ctx) {
             inheritSymbols(ctx);
             ctx.argumentSymbols.forEach(token ->
-                    symbolTable.computeIfAbsent(ctx.block(), key -> new HashSet<>()).add(Symbol.asNameSymbol(token.getText())));
+                    symbolTable.computeIfAbsent(ctx.block(), key -> new HashSet<>()).add(Symbol.parseNameSymbol(token.getText())));
             return super.visitFunctionDefinition(ctx);
         }
 
@@ -165,7 +165,7 @@ public final class ReferenceAnalyzer extends BaseCompilerProcessor {
             inheritSymbols(ctx);
 
             String variableNameText = ctx.nameSymbol.getText();
-            Symbol variableName = Symbol.asNameSymbol(variableNameText);
+            Symbol variableName = Symbol.parseNameSymbol(variableNameText);
             if (variableName == null) {
                 reportMessage(A_0020.render(getLocation(ctx.nameSymbol), variableNameText));
                 return super.visitAssignStatement(ctx);
@@ -188,7 +188,7 @@ public final class ReferenceAnalyzer extends BaseCompilerProcessor {
             inheritSymbols(ctx);
             Location location = getLocation(ctx.symbol);
             String symbolNameText = ctx.symbol.getText();
-            Symbol symbolName = Symbol.asMaybeQualifiedSymbol(symbolNameText);
+            Symbol symbolName = Symbol.parseMaybeQualifiedSymbol(symbolNameText);
             if (symbolName == null) {
                 reportMessage(A_0020.render(location, symbolNameText));
                 return null;

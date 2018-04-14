@@ -109,9 +109,9 @@ public final class Symbol {
             return null;
         }
 
-        String[] namespaceFragments = fragments[0].split(NAMESPACE_FRAGMENT_SEPARATOR);
-        fragments = fragments[1].split(NAMESPACE_FRAGMENT_SEPARATOR);
-        if (fragments.length > 0) {
+        String[] namespaceFragments = fragments[0].split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR));
+        fragments = fragments[1].split(Pattern.quote(NAMESPACE_FRAGMENT_SEPARATOR));
+        if (fragments.length > 1) {
             return null;
         }
 

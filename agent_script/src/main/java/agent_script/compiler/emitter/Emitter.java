@@ -3,6 +3,7 @@ package agent_script.compiler.emitter;
 import agent_script.antlr.AgentScriptBaseVisitor;
 import agent_script.antlr.AgentScriptParser;
 import agent_script.compiler.*;
+import agent_script.compiler.Compiler;
 import agent_script.compiler.analyzer.Symbol;
 import agent_script.compiler.analyzer.namespace.FunctionDefinition;
 import agent_script.compiler.analyzer.namespace.NamespaceDefinition;
@@ -195,7 +196,7 @@ public final class Emitter extends BaseCompilerProcessor {
             }
 
             return new ST("<functionName>(<argumentNames>)")
-                    .add("functionName", javaClassPrefix + DefaultCompiler.munge(functionName.getNameFragment()))
+                    .add("functionName", javaClassPrefix + Compiler.munge(functionName.getNameFragment()))
                     .add("argumentNames", argumentCtx.stream()
                             .map(expressionContext -> {
                                 String expression = visit(expressionContext);
@@ -232,7 +233,7 @@ public final class Emitter extends BaseCompilerProcessor {
             assert constantName != null;
             return new ST("<visibility> static final Object <name> = <value>;")
                     .add("visibility", namespaceDefinition.getConstantDefinitions().get(constantName).isPrivate() ? "private" : "public")
-                    .add("name", DefaultCompiler.munge(constantName.toString()))
+                    .add("name", Compiler.munge(constantName.toString()))
                     .add("value", visit(ctx.valueExpression))
                     .render();
         }
@@ -249,9 +250,9 @@ public final class Emitter extends BaseCompilerProcessor {
                     "    <inferredReturnStatement>\n" +
                     "}")
                     .add("visibility", functionDefinition.isPrivate() ? "private" : "public")
-                    .add("name", DefaultCompiler.munge(functionName.toString()))
+                    .add("name", Compiler.munge(functionName.toString()))
                     .add("argumentNames", ctx.argumentSymbols.stream()
-                            .map(argumentSymbol -> "Object " + DefaultCompiler.munge(argumentSymbol.getText()))
+                            .map(argumentSymbol -> "Object " + Compiler.munge(argumentSymbol.getText()))
                             .collect(Collectors.joining(",")))
                     .add("block", visit(ctx.block()))
                     .add("inferredReturnStatement", functionDefinition.hasExplicitReturn() ? "" : "return null;")
@@ -275,7 +276,7 @@ public final class Emitter extends BaseCompilerProcessor {
             assert variableName != null;
             return new ST("<type> <name> = <value>;")
                     .add("type", symbolTable.get(ctx).contains(variableName) ? "" : "Object")
-                    .add("name", DefaultCompiler.munge(variableName.toString()))
+                    .add("name", Compiler.munge(variableName.toString()))
                     .add("value", visit(ctx.valueExpression))
                     .render();
         }
@@ -384,7 +385,7 @@ public final class Emitter extends BaseCompilerProcessor {
         public String visitSymbolExpression(AgentScriptParser.SymbolExpressionContext ctx) {
             Symbol symbolName = Symbol.parseMaybeQualifiedSymbol(ctx.symbol.getText());
             assert symbolName != null;
-            return DefaultCompiler.munge(symbolName.toString());
+            return Compiler.munge(symbolName.toString());
         }
 
         @Override

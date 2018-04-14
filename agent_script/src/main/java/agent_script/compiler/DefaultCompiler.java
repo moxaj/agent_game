@@ -41,11 +41,6 @@ public final class DefaultCompiler implements Compiler {
     private static final String COMPILER_VERSION = "0001";
 
     /**
-     * The magic prefix with which to munge all emitted symbols.
-     */
-    private static final String MAGIC_PREFIX = "_";
-
-    /**
      * The root source path of the bundled sources.
      */
     private static final String MAIN_ROOT_SOURCE_PATH_STR = "/agent_script/compiler/main";
@@ -78,16 +73,6 @@ public final class DefaultCompiler implements Compiler {
                 throw new CompilerException(e);
             }
         }
-    }
-
-    /**
-     * Munges the given name to avoid conflict with any reserved java keywords.
-     *
-     * @param name the name to munge
-     * @return the munged name
-     */
-    public static String munge(String name) {
-        return MAGIC_PREFIX + name;
     }
 
     /**

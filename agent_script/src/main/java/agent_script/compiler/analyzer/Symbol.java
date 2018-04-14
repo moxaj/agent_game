@@ -1,6 +1,6 @@
 package agent_script.compiler.analyzer;
 
-import agent_script.compiler.DefaultCompiler;
+import agent_script.compiler.Compiler;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -167,7 +167,7 @@ public final class Symbol {
         String[] namespaceParts = getNamespaceFragments();
         assert namespaceParts.length > 1;
         return Arrays.stream(Arrays.copyOf(namespaceParts, namespaceParts.length - 1))
-                .map(DefaultCompiler::munge)
+                .map(Compiler::munge)
                 .collect(Collectors.joining(JAVA_PACKAGE_SEPARATOR));
     }
 
@@ -177,7 +177,7 @@ public final class Symbol {
     public String getJavaClassName() {
         String[] namespaceParts = getNamespaceFragments();
         assert namespaceParts.length > 1;
-        return DefaultCompiler.munge(namespaceParts[namespaceParts.length - 1]);
+        return Compiler.munge(namespaceParts[namespaceParts.length - 1]);
     }
 
 

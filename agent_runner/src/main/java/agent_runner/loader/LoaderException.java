@@ -1,7 +1,7 @@
 package agent_runner.loader;
 
 /**
- * Represents an exception thrown by the JavaFX application.
+ * Represents an exception thrown by the {@link Loader}.
  */
 public class LoaderException extends RuntimeException {
     public LoaderException() {

@@ -7,7 +7,13 @@ import agent_runner.runner.Runner;
 
 import java.nio.file.Path;
 
+/**
+ * A {@link Runner} implementation which provides no visuals.
+ */
 public final class HeadlessRunner implements Runner {
+    /**
+     * The path to the settings file.
+     */
     private final Path settingsPath;
 
     public HeadlessRunner(Path settingsPath) {

@@ -3,7 +3,7 @@ package agent_runner.loader.settings;
 /**
  * Represents the simulator settings, including all game settings.
  */
-public class SimulatorSettings {
+public final class SimulatorSettings {
     /**
      * The team settings.
      */

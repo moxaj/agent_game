@@ -254,28 +254,64 @@ public final class DefaultLoader implements Loader {
             throw new LoaderException("missing 'simulatorSettings.arenaSettings'");
         }
 
-        int width = arenaSettings.getWidth();
-        if (width == -1) {
-            throw new LoaderException("missing 'arenaSettings.width'");
+        Integer width = arenaSettings.getWidth();
+        if (width == null) {
+            throw new LoaderException("missing 'simulatorSettings.arenaSettings.width'");
         }
 
-        int height = arenaSettings.getHeight();
-        if (height == -1) {
-            throw new LoaderException("missing 'arenaSettings.height'");
+        Integer height = arenaSettings.getHeight();
+        if (height == null) {
+            throw new LoaderException("missing 'simulatorSettings.arenaSettings.height'");
         }
 
         return new Arena(width, height);
     }
 
     private GameParameters makeGameParameters(GameSettings gameSettings) {
-        // TODO check for nulls
         GameParameters gameParameters = new GameParameters();
-        gameParameters.setTimeQuota(gameSettings.getTimeQuota());
-        gameParameters.setInitialEnergy(gameSettings.getInitialEnergy());
-        gameParameters.setEnergyLoss(gameSettings.getEnergyLoss());
-        gameParameters.setEnergyRefill(gameSettings.getEnergyRefill());
-        gameParameters.setEnergyFrequency(gameSettings.getEnergyFrequency());
-        gameParameters.setVisionRange(gameSettings.getVisionRange());
+
+        Integer timeQuota = gameSettings.getTimeQuota();
+        if (timeQuota == null) {
+            throw new LoaderException("missing 'simulatorSettings.gameSettings.timeQouta'");
+        }
+
+        gameParameters.setTimeQuota(timeQuota);
+
+        Integer initialEnergy = gameSettings.getInitialEnergy();
+        if (initialEnergy == null) {
+            throw new LoaderException("missing 'simulatorSettings.gameSettings.initialEnergy'");
+        }
+
+        gameParameters.setInitialEnergy(initialEnergy);
+
+        Integer energyLoss = gameSettings.getEnergyLoss();
+        if (energyLoss == null) {
+            throw new LoaderException("missing 'simulatorSettings.gameSettings.energyLoss'");
+        }
+
+        gameParameters.setEnergyLoss(energyLoss);
+
+        Integer energyRefill = gameSettings.getEnergyRefill();
+        if (energyRefill == null) {
+            throw new LoaderException("missing 'simulatorSettings.gameSettings.energyRefill'");
+        }
+
+        gameParameters.setEnergyRefill(energyRefill);
+
+        Integer energyFrequency = gameSettings.getEnergyFrequency();
+        if (energyFrequency == null) {
+            throw new LoaderException("missing 'simulatorSettings.gameSettings.energyFrequency'");
+        }
+
+        gameParameters.setEnergyFrequency(energyFrequency);
+
+        Integer visionRange = gameSettings.getVisionRange();
+        if (visionRange == null) {
+            throw new LoaderException("missing 'simulatorSettings.gameSettings.visionRange'");
+        }
+
+        gameParameters.setVisionRange(visionRange);
+
         return gameParameters;
     }
 

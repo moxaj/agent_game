@@ -3,42 +3,42 @@ package agent_runner.loader.settings;
 /**
  * Represents the input settings for the arena.
  */
-public class ArenaSettings {
+public final class ArenaSettings {
     /**
      * The width of the arena.
      */
-    private int width = -1;
+    private Integer width;
 
     /**
      * The height of the arena.
      */
-    private int height = -1;
+    private Integer height;
 
     /**
      * @return the value of {@link #width}
      */
-    public int getWidth() {
+    public Integer getWidth() {
         return width;
     }
 
     /**
      * @param width the value of {@link #width}
      */
-    public void setWidth(int width) {
+    public void setWidth(Integer width) {
         this.width = width;
     }
 
     /**
      * @return the value of {@link #height}
      */
-    public int getHeight() {
+    public Integer getHeight() {
         return height;
     }
 
     /**
      * @param height the value of {@link #height}
      */
-    public void setHeight(int height) {
+    public void setHeight(Integer height) {
         this.height = height;
     }
 }

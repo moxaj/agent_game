@@ -3,7 +3,7 @@ package agent_runner.loader.settings;
 /**
  * Represents the settings of an agent.
  */
-public class AgentSettings {
+public final class AgentSettings {
     /**
      * The name of the agent.
      */

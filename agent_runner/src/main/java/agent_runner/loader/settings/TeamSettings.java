@@ -3,7 +3,7 @@ package agent_runner.loader.settings;
 /**
  * Represents the team related settings.
  */
-public class TeamSettings {
+public final class TeamSettings {
     /**
      * The name of the team.
      */

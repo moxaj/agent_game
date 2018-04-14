@@ -3,7 +3,7 @@ package agent_runner.loader.settings;
 /**
  * Represents the main settings read from settings.yaml.
  */
-public class Settings {
+public final class Settings {
     /**
      * The logging related settings.
      */

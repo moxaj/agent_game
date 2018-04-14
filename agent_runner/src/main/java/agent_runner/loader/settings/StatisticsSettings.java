@@ -3,7 +3,7 @@ package agent_runner.loader.settings;
 /**
  * Represents the settings related to the collected statistics.
  */
-public class StatisticsSettings {
+public final class StatisticsSettings {
     /**
      * The output directory where the statistics file will be written.
      */

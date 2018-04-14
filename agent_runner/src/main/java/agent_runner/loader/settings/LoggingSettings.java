@@ -3,7 +3,7 @@ package agent_runner.loader.settings;
 /**
  * Represents the logging related settings.
  */
-public class LoggingSettings {
+public final class LoggingSettings {
     /**
      * The output directory where all log files are written.
      */

@@ -2,19 +2,27 @@ package agent_runner.runner.javafx;
 
 import agent_game.game.Agent;
 import agent_game.game.GameParameters;
+import agent_game.game.Team;
 import agent_runner.loader.DefaultLoader;
-import agent_runner.visualizer.DefaultVisualizer;
-import agent_runner.visualizer.Visualizer;
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.StringBinding;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableStringValue;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Side;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -23,15 +31,18 @@ import org.kordamp.ikonli.javafx.FontIcon;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * The main JavaFX controller, responsible for providing the simulator visuals.
+ * The main JavaFX controller, responsible for providing the simulator visuals and controls.
  */
 public class MainController {
-    private final Visualizer visualizer = new DefaultVisualizer();
-
-    private ObservableSimulation simulation;
+    /**
+     * The controlled game simulation.
+     */
+    private Simulation simulation;
 
     // Menu
 
@@ -117,18 +128,10 @@ public class MainController {
     @FXML
     private TextField visionRangeTextField;
 
-    // Game
-
-    @FXML
-    private TextField roundTextField;
-
-    @FXML
-    private TextField finishedTextField;
-
     // Agents
 
     @FXML
-    private TableView<ObservableAgent> agentsTableView;
+    private TableView<Agent> agentsTableView;
 
     // Inspections
 
@@ -141,15 +144,30 @@ public class MainController {
     @FXML
     private TextArea statisticsTextArea;
 
-    @FXML
-    private Canvas gameCanvas;
+    // Canvas
 
+    @FXML
+    private Canvas mainCanvas;
+
+    private MainCanvasController mainCanvasController;
+
+    // Charts
+
+    @FXML
+    private BarChart<String, Number> agentEnergyBarChart;
+
+    @FXML
+    private BarChart<String, Number> teamEnergyBarChart;
+
+    /**
+     * Initializes the menu elements.
+     */
     private void setupMenu() {
         openMenuItem.disableProperty().bind(Bindings.createBooleanBinding(
                 () -> {
-                    ObservableSimulation.State simulationState = simulation.getState();
-                    return !(simulationState == ObservableSimulation.State.NOT_LOADED
-                            || simulationState == ObservableSimulation.State.STOPPED);
+                    DefaultSimulation.State simulationState = simulation.getState();
+                    return !(simulationState == DefaultSimulation.State.NOT_LOADED
+                            || simulationState == DefaultSimulation.State.STOPPED);
                 },
                 simulation.stateProperty()));
         openMenuItem.setOnAction(event -> openSettings());
@@ -157,19 +175,19 @@ public class MainController {
         exitMenuItem.setOnAction(event -> exit());
 
         stopRestartMenuItem.textProperty().bind(Bindings.createStringBinding(
-                () -> simulation.getState() == ObservableSimulation.State.STOPPED
+                () -> simulation.getState() == DefaultSimulation.State.STOPPED
                         ? "Restart simulation"
                         : "Stop simulation",
                 simulation.stateProperty()));
         stopRestartMenuItem.disableProperty().bind(Bindings.createBooleanBinding(
                 () -> {
-                    ObservableSimulation.State simulationState = simulation.getState();
-                    return !(simulationState == ObservableSimulation.State.STOPPED
-                            || simulationState == ObservableSimulation.State.PAUSED);
+                    DefaultSimulation.State simulationState = simulation.getState();
+                    return !(simulationState == DefaultSimulation.State.STOPPED
+                            || simulationState == DefaultSimulation.State.PAUSED);
                 },
                 simulation.stateProperty()));
         stopRestartMenuItem.setOnAction(event -> {
-            if (simulation.getState() == ObservableSimulation.State.STOPPED) {
+            if (simulation.getState() == DefaultSimulation.State.STOPPED) {
                 simulation.restart();
             } else {
                 simulation.stop();
@@ -177,19 +195,19 @@ public class MainController {
         });
 
         pauseResumeMenuItem.textProperty().bind(Bindings.createStringBinding(
-                () -> simulation.getState() == ObservableSimulation.State.PAUSED
+                () -> simulation.getState() == DefaultSimulation.State.PAUSED
                         ? "Resume simulation"
                         : "Pause simulation",
                 simulation.stateProperty()));
         pauseResumeMenuItem.disableProperty().bind(Bindings.createBooleanBinding(
                 () -> {
-                    ObservableSimulation.State simulationState = simulation.getState();
-                    return !(simulationState == ObservableSimulation.State.PAUSED
-                            || simulationState == ObservableSimulation.State.RUNNING);
+                    DefaultSimulation.State simulationState = simulation.getState();
+                    return !(simulationState == DefaultSimulation.State.PAUSED
+                            || simulationState == DefaultSimulation.State.RUNNING);
                 },
                 simulation.stateProperty()));
         pauseResumeMenuItem.setOnAction(event -> {
-            if (simulation.getState() == ObservableSimulation.State.PAUSED) {
+            if (simulation.getState() == DefaultSimulation.State.PAUSED) {
                 simulation.resume();
             } else {
                 simulation.pause();
@@ -197,23 +215,26 @@ public class MainController {
         });
 
         stepMenuItem.disableProperty().bind(Bindings.createBooleanBinding(
-                () -> simulation.getState() != ObservableSimulation.State.PAUSED,
+                () -> simulation.getState() != DefaultSimulation.State.PAUSED,
                 simulation.stateProperty()));
         stepMenuItem.setOnAction(event -> simulation.step());
 
         decreaseSpeedMenuItem.disableProperty().bind(Bindings.createBooleanBinding(
-                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED || !simulation.canDecreaseSpeed(),
+                () -> simulation.getState() == DefaultSimulation.State.NOT_LOADED || !simulation.canDecreaseSpeed(),
                 simulation.stateProperty(),
                 simulation.speedProperty()));
         decreaseSpeedMenuItem.setOnAction(event -> simulation.decreaseSpeed());
 
         increaseSpeedMenuItem.disableProperty().bind(Bindings.createBooleanBinding(
-                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED || !simulation.canIncreaseSpeed(),
+                () -> simulation.getState() == DefaultSimulation.State.NOT_LOADED || !simulation.canIncreaseSpeed(),
                 simulation.stateProperty(),
                 simulation.speedProperty()));
         increaseSpeedMenuItem.setOnAction(event -> simulation.increaseSpeed());
     }
 
+    /**
+     * Initializes the toolbar elements.
+     */
     private void setupToolbar() {
         openLabel.getTooltip().setText(openMenuItem.getText());
         openButton.setTooltip(openLabel.getTooltip());
@@ -224,7 +245,7 @@ public class MainController {
         stopRestartLabel.getTooltip().textProperty().bind(stopRestartMenuItem.textProperty());
         stopRestartButton.setTooltip(stopRestartLabel.getTooltip());
         stopRestartButton.graphicProperty().bind(Bindings.createObjectBinding(
-                () -> simulation.getState() == ObservableSimulation.State.STOPPED
+                () -> simulation.getState() == DefaultSimulation.State.STOPPED
                         ? new FontIcon("fas-redo")
                         : new FontIcon("fas-stop"),
                 simulation.stateProperty()));
@@ -234,7 +255,7 @@ public class MainController {
         pauseResumeLabel.getTooltip().textProperty().bind(pauseResumeMenuItem.textProperty());
         pauseResumeButton.setTooltip(pauseResumeLabel.getTooltip());
         pauseResumeButton.graphicProperty().bind(Bindings.createObjectBinding(
-                () -> simulation.getState() == ObservableSimulation.State.PAUSED
+                () -> simulation.getState() == DefaultSimulation.State.PAUSED
                         ? new FontIcon("fas-play")
                         : new FontIcon("fas-pause"),
                 simulation.stateProperty()));
@@ -259,13 +280,15 @@ public class MainController {
         increaseSpeedButton.disableProperty().bind(increaseSpeedMenuItem.disableProperty());
         increaseSpeedButton.setOnAction(increaseSpeedMenuItem.getOnAction());
 
-        speedLabel.textProperty().bind(Bindings.createIntegerBinding(() ->
-                (int) Math.pow(2, simulation.getSpeed()), simulation.speedProperty()).asString("%2dx"));
+        speedLabel.textProperty().bind(Bindings.format("%2dx", simulation.speedProperty()));
     }
 
+    /**
+     * Initializes the game parameter text fields.
+     */
     private void setupGameParameterTextFields() {
         ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
-                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                () -> simulation.getState() == DefaultSimulation.State.NOT_LOADED,
                 simulation.stateProperty());
         timeQuotaTextField.disableProperty().bind(disable);
         initialEnergyTextField.disableProperty().bind(disable);
@@ -275,6 +298,9 @@ public class MainController {
         visionRangeTextField.disableProperty().bind(disable);
     }
 
+    /**
+     * Populates the game parameter text fields.
+     */
     private void populateGameParameterTextFields() {
         GameParameters gameParameters = simulation.getGameState().getParameters();
         timeQuotaTextField.setText(Integer.toString(gameParameters.getTimeQuota()));
@@ -285,41 +311,36 @@ public class MainController {
         visionRangeTextField.setText(Integer.toString(gameParameters.getVisionRange()));
     }
 
-    private void setupGameLabels() {
-        ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
-                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
-                simulation.stateProperty());
-        roundTextField.disableProperty().bind(disable);
-        finishedTextField.disableProperty().bind(disable);
-    }
-
-    private void populateGameLabels() {
-        roundTextField.textProperty().bind(simulation.getObservableGameState().roundProperty().asString());
-        finishedTextField.textProperty().bind(simulation.getObservableGameState().finishedProperty().asString());
-    }
-
+    /**
+     * Initializes the agent table view.
+     */
     private void setupAgentTableView() {
         ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
-                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                () -> simulation.getState() == DefaultSimulation.State.NOT_LOADED,
                 simulation.stateProperty());
         agentsTableView.disableProperty().bind(disable);
         agentsTableView.setPlaceholder(new Label(""));
 
-        ObservableList<TableColumn<ObservableAgent, ?>> agentsTableViewColumns = agentsTableView.getColumns();
+        ObservableList<TableColumn<Agent, ?>> agentsTableViewColumns = agentsTableView.getColumns();
 
-        TableColumn<ObservableAgent, Number> indexColumn = new TableColumn<>("Index");
+        TableColumn<Agent, Number> indexColumn = new TableColumn<>("Index");
         indexColumn.setCellValueFactory(cellData -> new SimpleIntegerProperty(cellData.getValue().getIndex()));
         agentsTableViewColumns.add(indexColumn);
 
-        TableColumn<ObservableAgent, String> nameColumn = new TableColumn<>("Name");
+        TableColumn<Agent, String> nameColumn = new TableColumn<>("Name");
         nameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getName()));
         agentsTableViewColumns.add(nameColumn);
 
-        TableColumn<ObservableAgent, String> teamNameColumn = new TableColumn<>("Team name");
-        teamNameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getTeamName()));
+        TableColumn<Agent, String> teamNameColumn = new TableColumn<>("Team name");
+        teamNameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getTeam().getName()));
         agentsTableViewColumns.add(teamNameColumn);
 
-        TableColumn<ObservableAgent, String> stateColumn = new TableColumn<>("State");
+        TableColumn<Agent, Number> energyColumn = new TableColumn<>("Energy");
+        energyColumn.setCellValueFactory(cellData ->
+                Bindings.createIntegerBinding(() -> cellData.getValue().getEnergy(), simulation.getTick()));
+        agentsTableViewColumns.add(energyColumn);
+
+        TableColumn<Agent, String> stateColumn = new TableColumn<>("State");
         stateColumn.setCellValueFactory(cellData -> Bindings.createStringBinding(
                 () -> {
                     switch (cellData.getValue().getState()) {
@@ -338,25 +359,28 @@ public class MainController {
                             throw new RuntimeException();
                     }
                 },
-                cellData.getValue().stateProperty()));
+                simulation.getTick()));
         agentsTableViewColumns.add(stateColumn);
-
-        TableColumn<ObservableAgent, Number> energyColumn = new TableColumn<>("Energy");
-        energyColumn.setCellValueFactory(cellData -> cellData.getValue().energyProperty());
-        agentsTableViewColumns.add(energyColumn);
     }
 
+    /**
+     * Populates the agent table view.
+     */
     private void populateAgentTableView() {
-        ObservableList<ObservableAgent> agentsTableViewItems = agentsTableView.getItems();
+        ObservableList<Agent> agentsTableViewItems = agentsTableView.getItems();
         agentsTableViewItems.clear();
-
-        simulation.getGameState().getAgents().stream()
+        agentsTableViewItems.addAll(simulation.getGameState().getTeams()
+                .stream()
+                .flatMap(team -> team.getAgents().stream())
                 .sorted(Comparator.comparing(Agent::getIndex))
-                .forEach(agent ->
-                        agentsTableViewItems.add(new ObservableAgent(agent, simulation.getObservableGameState().roundProperty())));
+                .collect(Collectors.toList()));
     }
 
-    private StringBinding makeInspectionBinding(Function<ObservableAgent, String> agentStringFunction) {
+    /**
+     * @param agentStringFunction the function which returns some string property of the agent
+     * @return the observable value
+     */
+    private ObservableStringValue makeObservableAgentProperty(Function<Agent, String> agentStringFunction) {
         return Bindings.createStringBinding(
                 () -> {
                     switch (simulation.getState()) {
@@ -364,10 +388,10 @@ public class MainController {
                             return "";
                         case STOPPED:
                         case PAUSED:
-                            ObservableAgent observableAgent = agentsTableView.getSelectionModel().getSelectedItem();
-                            return observableAgent == null
+                            Agent Agent = agentsTableView.getSelectionModel().getSelectedItem();
+                            return Agent == null
                                     ? "<select agent to show inspection>"
-                                    : agentStringFunction.apply(observableAgent);
+                                    : agentStringFunction.apply(Agent);
                         case RUNNING:
                             return "<pause simulation to show inspection>";
                         default:
@@ -376,30 +400,117 @@ public class MainController {
                     }
                 },
                 simulation.stateProperty(),
-                simulation.getObservableGameState().roundProperty(),
+                simulation.getTick(),
                 agentsTableView.getSelectionModel().selectedItemProperty());
     }
 
+    /**
+     * Initializes the agent inspection elements.
+     */
     private void setupAgentInspections() {
         ObservableValue<Boolean> disable = Bindings.createBooleanBinding(
-                () -> simulation.getState() == ObservableSimulation.State.NOT_LOADED,
+                () -> simulation.getState() == DefaultSimulation.State.NOT_LOADED,
                 simulation.stateProperty());
 
-        memoryTextArea.textProperty().bind(makeInspectionBinding(observableAgent -> observableAgent.getMemory().toString()));
+        memoryTextArea.textProperty().bind(makeObservableAgentProperty(agent -> agent.getMemory().toString()));
         memoryTextArea.disableProperty().bind(disable);
 
-        teamMemoryTextArea.textProperty().bind(makeInspectionBinding(observableAgent -> observableAgent.getTeamMemory().toString()));
+        teamMemoryTextArea.textProperty().bind(makeObservableAgentProperty(agent -> agent.getTeam().getMemory().toString()));
         teamMemoryTextArea.disableProperty().bind(disable);
 
-        statisticsTextArea.textProperty().bind(makeInspectionBinding(observableAgent -> observableAgent.getStatistics().toString()));
+        statisticsTextArea.textProperty().bind(makeObservableAgentProperty(agent -> agent.getStatistics().toString()));
         statisticsTextArea.disableProperty().bind(disable);
     }
 
-    private void setupVisualizer() {
-        visualizer.setup(simulation.getGameState(), gameCanvas);
-        visualizer.repaint();
+    /**
+     * Initializes a bar chart.
+     *
+     * @param barChart the bar chart
+     */
+    private void setupEnergyBarChar(BarChart<String, Number> barChart) {
+        barChart.setAnimated(false);
+        barChart.setHorizontalGridLinesVisible(true);
+        barChart.setVerticalGridLinesVisible(false);
+        barChart.setCategoryGap(0);
+        barChart.setBarGap(10);
+        barChart.setLegendSide(Side.BOTTOM);
+        barChart.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+
+        CategoryAxis xAxis = (CategoryAxis) barChart.getXAxis();
+        xAxis.setTickLabelsVisible(false);
+        xAxis.setTickMarkVisible(false);
+
+        NumberAxis yAxis = (NumberAxis) barChart.getYAxis();
+        yAxis.setLowerBound(0);
+        yAxis.setAutoRanging(false);
+        yAxis.tickUnitProperty().bind(yAxis.upperBoundProperty().divide(5));
+        yAxis.setTickMarkVisible(false);
+        yAxis.setMinorTickVisible(false);
     }
 
+    /**
+     * Initializes the agent energy bar chart.
+     */
+    private void setupAgentEnergyBarChart() {
+        setupEnergyBarChar(agentEnergyBarChart);
+    }
+
+    /**
+     * Initializes the team energy bar chart.
+     */
+    private void setupTeamEnergyBarChart() {
+        setupEnergyBarChar(teamEnergyBarChart);
+    }
+
+    /**
+     * Populates the agent energy bar chart.
+     */
+    private void populateAgentEnergyBarChart() {
+        List<Agent> agents = simulation.getGameState().getAgents();
+        agents.forEach(agent -> {
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName(agent.getName());
+
+            XYChart.Data<String, Number> agentData = new XYChart.Data<>();
+            agentData.setXValue("");
+            agentData.YValueProperty().bind(Bindings.createIntegerBinding(agent::getEnergy, simulation.getTick()));
+            series.getData().add(agentData);
+
+            agentEnergyBarChart.getData().add(series);
+        });
+
+        NumberAxis yAxis = (NumberAxis) agentEnergyBarChart.getYAxis();
+        yAxis.upperBoundProperty().bind(Bindings.createIntegerBinding(
+                () -> (int) Math.pow(10, Math.ceil(Math.log10(agents.stream().mapToInt(Agent::getEnergy).max().getAsInt()))),
+                simulation.getTick()));
+    }
+
+    /**
+     * Populates the team energy bar chart.
+     */
+    private void populateTeamEnergyBarChart() {
+        List<Team> teams = simulation.getGameState().getTeams();
+        teams.forEach(team -> {
+            XYChart.Series<String, Number> series = new XYChart.Series<>();
+            series.setName(team.getName());
+
+            XYChart.Data<String, Number> teamData = new XYChart.Data<>();
+            teamData.setXValue("");
+            teamData.YValueProperty().bind(Bindings.createIntegerBinding(team::getEnergy, simulation.getTick()));
+            series.getData().add(teamData);
+
+            teamEnergyBarChart.getData().add(series);
+        });
+
+        NumberAxis yAxis = (NumberAxis) teamEnergyBarChart.getYAxis();
+        yAxis.upperBoundProperty().bind(Bindings.createIntegerBinding(
+                () -> (int) Math.pow(10, Math.ceil(Math.log10(teams.stream().mapToInt(Team::getEnergy).max().getAsInt()))),
+                simulation.getTick()));
+    }
+
+    /**
+     * Opens and processes a settings file.
+     */
     private void openSettings() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Choose simulation settings");
@@ -410,32 +521,43 @@ public class MainController {
             return;
         }
 
-        simulation.setSimulator(new DefaultLoader().load(chosenFile.toPath()));
+        simulation.initialize(new DefaultLoader().load(chosenFile.toPath()));
+        mainCanvasController.initialize(simulation.getGameState(), simulation.getTick());
+
         simulation.restart();
 
         populateGameParameterTextFields();
-        populateGameLabels();
         populateAgentTableView();
-        setupVisualizer();
         setupAgentInspections();
+        populateAgentEnergyBarChart();
+        populateTeamEnergyBarChart();
     }
 
+    /**
+     * Exits the application.
+     */
     private void exit() {
         Stage stage = (Stage) openLabel.getScene().getWindow();
         stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
     }
 
-    // Public API
-
+    /**
+     * Initializes all elements.
+     */
     public void initialize() {
-        simulation = new ObservableSimulation(() -> Platform.runLater(visualizer::repaint));
+        simulation = new DefaultSimulation();
+        mainCanvasController = new MainCanvasController(mainCanvas);
         setupMenu();
         setupToolbar();
         setupGameParameterTextFields();
-        setupGameLabels();
         setupAgentTableView();
+        setupAgentEnergyBarChart();
+        setupTeamEnergyBarChart();
     }
 
+    /**
+     * Callback called when the window is closed.
+     */
     public void onStageClosed() {
         simulation.shutdown();
     }

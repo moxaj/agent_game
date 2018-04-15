@@ -3,7 +3,7 @@ package agent_game.game;
 /**
  * Represents the game arena.
  */
-public class Arena {
+public final class Arena {
     /**
      * The width of the arena.
      */
@@ -51,10 +51,21 @@ public class Arena {
      * @param y the y coordinate
      * @return the cell or null
      */
-    public ArenaCell getCell(int x, int y) {
+    public ArenaCell getCellSafe(int x, int y) {
         return x < 0 || y < 0 || x >= width || y >= height
                 ? null
                 : cells[height - y - 1][x];
+    }
+
+    /**
+     * Returns a cell, or throws if the coordinates are out of bounds.
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @return the cell
+     */
+    public ArenaCell getCell(int x, int y) {
+        return cells[height - y - 1][x];
     }
 
     /**

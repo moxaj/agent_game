@@ -3,7 +3,7 @@ package agent_game.game;
 /**
  * Represents a single cell within the arena.
  */
-public class ArenaCell {
+public final class ArenaCell {
     /**
      * The x coordinate of the cell.
      */

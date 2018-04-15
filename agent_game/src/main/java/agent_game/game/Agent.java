@@ -7,13 +7,8 @@ import java.util.logging.Logger;
 /**
  * Represents an agent.
  */
-public class Agent {
+public final class Agent {
     // Metadata
-
-    /**
-     * The globally unique index of the agent.
-     */
-    private final int index;
 
     /**
      * The name of the agent.
@@ -21,19 +16,14 @@ public class Agent {
     private final String name;
 
     /**
-     * The team name of the agent.
+     * The globally unique index of the agent.
      */
-    private final String teamName;
+    private final int index;
 
     /**
-     * The personal logger of the agent.
+     * The team of the agent.
      */
-    private final Logger logger;
-
-    /**
-     * The reasoning script of the agent.
-     */
-    private final AgentScript script;
+    private final Team team;
 
     /**
      * The memory of the agent.
@@ -41,14 +31,19 @@ public class Agent {
     private final Map<Object, Object> memory;
 
     /**
-     * The team memory of the agent.
-     */
-    private final Map<Object, Object> teamMemory;
-
-    /**
      * The statistics collected by agent.
      */
     private final Map<Object, Object> statistics;
+
+    /**
+     * The reasoning script of the agent.
+     */
+    private final AgentScript script;
+
+    /**
+     * The personal logger of the agent.
+     */
+    private final Logger logger;
 
     // Game state
 
@@ -77,24 +72,15 @@ public class Agent {
      */
     private State state;
 
-    public Agent(int index, String name, String teamName, Logger logger, AgentScript script, Map<Object, Object> teamMemory) {
-        this.index = index;
+    public Agent(String name, int index, Team team, AgentScript script, Logger logger) {
         this.name = name;
-        this.teamName = teamName;
-        this.logger = logger;
-        this.script = script;
+        this.index = index;
+        this.team = team;
         this.memory = new HashMap<>();
-        this.teamMemory = teamMemory;
         this.statistics = new HashMap<>();
-
+        this.script = script;
+        this.logger = logger;
         reset(-1, -1, 0, -1);
-    }
-
-    /**
-     * @return the value of {@link #index}
-     */
-    public int getIndex() {
-        return index;
     }
 
     /**
@@ -105,24 +91,17 @@ public class Agent {
     }
 
     /**
-     * @return the value of {@link #teamName}
+     * @return the value of {@link #index}
      */
-    public String getTeamName() {
-        return teamName;
+    public int getIndex() {
+        return index;
     }
 
     /**
-     * @return the value of {@link #logger}
+     * @return the value of {@link #team}
      */
-    public Logger getLogger() {
-        return logger;
-    }
-
-    /**
-     * @return the value of {@link #script}
-     */
-    public AgentScript getScript() {
-        return script;
+    public Team getTeam() {
+        return team;
     }
 
     /**
@@ -133,17 +112,24 @@ public class Agent {
     }
 
     /**
-     * @return the value of {@link #teamMemory}
-     */
-    public Map<Object, Object> getTeamMemory() {
-        return teamMemory;
-    }
-
-    /**
      * @return the value of {@link #statistics}
      */
     public Map<Object, Object> getStatistics() {
         return statistics;
+    }
+
+    /**
+     * @return the value of {@link #script}
+     */
+    public AgentScript getScript() {
+        return script;
+    }
+
+    /**
+     * @return the value of {@link #logger}
+     */
+    public Logger getLogger() {
+        return logger;
     }
 
     /**
@@ -228,7 +214,6 @@ public class Agent {
      */
     public void reset(int x, int y, int direction, int energy) {
         this.memory.clear();
-        this.teamMemory.clear();
         this.statistics.clear();
         this.x = x;
         this.y = y;

@@ -27,6 +27,11 @@ public class DefaultSimulator implements Simulator {
     private static final Random RANDOM = new Random();
 
     /**
+     * The game state.
+     */
+    private final GameState gameState;
+
+    /**
      * The simulator logger.
      */
     private final Logger logger;
@@ -42,14 +47,15 @@ public class DefaultSimulator implements Simulator {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     /**
-     * The game state.
+     * Whether the simulator was shut down externally.
      */
-    private final GameState gameState;
+    private boolean shutdown;
 
-    public DefaultSimulator(Logger logger, Path statisticsDirectory, List<Agent> agents, Arena arena, GameParameters gameParameters) {
+    public DefaultSimulator(GameState gameState, Logger logger, Path statisticsDirectory) {
+        this.gameState = gameState;
         this.logger = logger;
         this.statisticsDirectory = statisticsDirectory;
-        this.gameState = new GameState(new LinkedHashSet<>(agents), arena, gameParameters);
+        this.shutdown = false;
     }
 
     /**
@@ -85,25 +91,24 @@ public class DefaultSimulator implements Simulator {
     private Map<Object, Object> calculateAgentState(Agent agent) {
         Set<ArenaCell> visibleArenaCells = visibleCells(agent);
         return toMap(
+                "name", agent.getName(),
+                "team_name", agent.getTeam().getName(),
                 "position", toList(agent.getX(), agent.getY()),
                 "direction", agent.getDirection(),
                 "energy", agent.getEnergy(),
-                "name", agent.getName(),
-                "teamName", agent.getTeamName(),
-                "drinks", visibleArenaCells.stream()
-                        .filter(ArenaCell::hasEnergy)
-                        .map(arenaCell -> toList(arenaCell.getX(), arenaCell.getY()))
-                        .collect(Collectors.toList()),
                 "agents", visibleArenaCells.stream()
                         .map(ArenaCell::getAgent)
                         .filter(Objects::nonNull)
                         .map(visibleAgent -> toMap(
+                                "name", visibleAgent.getName(),
+                                "team_name", visibleAgent.getTeam().getName(),
                                 "position", toList(visibleAgent.getX(), visibleAgent.getY()),
                                 "direction", visibleAgent.getDirection(),
-                                "energy", visibleAgent.getEnergy(),
-                                "name", visibleAgent.getName(),
-                                "teamName", visibleAgent.getTeamName()
-                        ))
+                                "energy", visibleAgent.getEnergy()))
+                        .collect(Collectors.toList()),
+                "drinks", visibleArenaCells.stream()
+                        .filter(ArenaCell::hasEnergy)
+                        .map(arenaCell -> toList(arenaCell.getX(), arenaCell.getY()))
                         .collect(Collectors.toList())
         );
     }
@@ -117,7 +122,7 @@ public class DefaultSimulator implements Simulator {
     private AgentAction executeAgentScript(Agent agent) {
         Runtime.redirectOut(new LoggingPrintStream(agent.getLogger()));
         Future<AgentAction> agentActionFuture = executorService.submit(() -> agent.getScript().execute(
-                calculateAgentState(agent), agent.getMemory(), agent.getTeamMemory(), agent.getStatistics()));
+                calculateAgentState(agent), agent.getMemory(), agent.getTeam().getMemory(), agent.getStatistics()));
         try {
             return agentActionFuture.get(gameState.getParameters().getTimeQuota(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
@@ -185,7 +190,7 @@ public class DefaultSimulator implements Simulator {
                         throw new RuntimeException();
                 }
 
-                ArenaCell arenaCell = arena.getCell(u, v);
+                ArenaCell arenaCell = arena.getCellSafe(u, v);
                 if (arenaCell != null) {
                     visibleArenaCells.add(arenaCell);
                 }
@@ -272,7 +277,7 @@ public class DefaultSimulator implements Simulator {
                         throw new RuntimeException();
                 }
 
-                ArenaCell arenaCell = arena.getCell(u, v);
+                ArenaCell arenaCell = arena.getCellSafe(u, v);
                 if (arenaCell != null && arenaCell.getAgent() == null) {
                     arena.getCell(x, y).setAgent(null);
                     arenaCell.setAgent(agent);
@@ -309,61 +314,57 @@ public class DefaultSimulator implements Simulator {
     }
 
     /**
-     * Calculates the set of remaining teams' names.
-     *
-     * @param agents the remaining agents
-     * @return the remaining teams' names
-     */
-    private Set<String> remainingTeamNames(Set<Agent> agents) {
-        return agents.stream().map(Agent::getTeamName).collect(Collectors.toSet());
-    }
-
-    /**
      * Writes the agent statistics to the disk.
      */
     private void writeAgentStatistics() {
-        gameState.getAgents().forEach(agent -> {
-            Path agentStatisticsPath = statisticsDirectory.resolve(agent.getName() + ".txt");
-            try {
-                Files.createDirectories(agentStatisticsPath.getParent());
-                try (BufferedWriter writer = Files.newBufferedWriter(agentStatisticsPath, Charset.forName("UTF-8"))) {
-                    writer.write(agent.getStatistics().toString());
+        gameState.getTeams().forEach(team -> {
+            team.getAgents().forEach(agent -> {
+                Path agentStatisticsPath = statisticsDirectory.resolve(agent.getName() + ".txt");
+                try {
+                    Files.createDirectories(agentStatisticsPath.getParent());
+                    try (BufferedWriter writer = Files.newBufferedWriter(agentStatisticsPath, Charset.forName("UTF-8"))) {
+                        writer.write(agent.getStatistics().toString());
+                    }
+                } catch (IOException e) {
+                    logger.log(Level.INFO, String.format("failed to write agent statistics for agent: '%s', at: '%s'",
+                            agent.getName(), agentStatisticsPath.toAbsolutePath().toString()));
                 }
-            } catch (IOException e) {
-                logger.log(Level.INFO, String.format("failed to write agent statistics for agent: '%s', at: '%s'",
-                        agent.getName(), agentStatisticsPath.toAbsolutePath().toString()));
-            }
+            });
         });
     }
 
     @Override
-    public void stop() {
-        logger.log(Level.INFO, "simulation stopped");
+    public void shutdown() {
+        logger.log(Level.INFO, "simulation shut down");
+        shutdown = true;
         executorService.shutdownNow();
         writeAgentStatistics();
     }
 
     @Override
-    public void restart() {
+    public void reset() {
         logger.log(Level.INFO, "simulation restarted");
         gameState.getArena().reset();
-        gameState.getAgents().forEach(this::spawnAgent);
+        gameState.getTeams().forEach(team -> {
+            team.reset();
+            team.getAgents().forEach(this::spawnAgent);
+        });
         gameState.setFinished(false);
         gameState.setRound(0);
     }
 
     @Override
     public void step() {
-        if (gameState.isFinished()) {
+        if (gameState.isFinished() || shutdown) {
             return;
         }
 
         GameParameters gameParameters = gameState.getParameters();
-        Set<Agent> agents = gameState.getAgents();
+        List<Team> teams = gameState.getTeams();
 
         // Exit conditions
-        Set<String> remainingTeamNames = remainingTeamNames(agents);
-        int remainingTeamCount = remainingTeamNames.size();
+        List<Team> remainingTeams = teams.stream().filter(team -> !team.isEliminated()).collect(Collectors.toList());
+        int remainingTeamCount = remainingTeams.size();
         if (remainingTeamCount < 2) {
             if (remainingTeamCount == 0) {
                 // TODO
@@ -384,41 +385,44 @@ public class DefaultSimulator implements Simulator {
             spawnEnergyDrink();
         }
 
-        // Iterate each agent
-        agents.forEach(agent -> {
-            // Skip if eliminated
-            if (agent.isEliminated()) {
-                return;
-            }
+        // Iterate each team
+        teams.forEach(team -> {
+            // Iterate each agent
+            team.getAgents().forEach(agent -> {
+                // Skip if eliminated
+                if (agent.isEliminated()) {
+                    return;
+                }
 
-            String agentName = agent.getName();
+                String agentName = agent.getName();
 
-            // Check if agent has any energy left
-            agent.setEnergy(agent.getEnergy() - gameParameters.getEnergyLoss());
-            if (agent.getEnergy() <= 0) {
-                eliminateAgent(agent, Agent.State.NO_ENERGY, String.format("agent has no energy left: '%s'", agentName));
-                return;
-            }
+                // Check if agent has any energy left
+                agent.setEnergy(agent.getEnergy() - gameParameters.getEnergyLoss());
+                if (agent.getEnergy() <= 0) {
+                    eliminateAgent(agent, Agent.State.NO_ENERGY, String.format("agent has no energy left: '%s'", agentName));
+                    return;
+                }
 
-            // Compute and apply the agent action
-            AgentAction agentAction;
-            try {
-                agentAction = executeAgentScript(agent);
-            } catch (ScriptPanicException e) {
-                eliminateAgent(
-                        agent, Agent.State.PANICKED, String.format("agent '%s' panicked with message: %s", agentName, e.getMessage()));
-                return;
-            } catch (ScriptTimeoutException e) {
-                eliminateAgent(
-                        agent, Agent.State.TIMED_OUT, String.format("agent '%s' timed out", agentName));
-                return;
-            } catch (ScriptExecutionException e) {
-                eliminateAgent(
-                        agent, Agent.State.CRASHED, String.format("agent '%s' crashed with exception: %s", agentName, e.getMessage()));
-                return;
-            }
+                // Compute and apply the agent action
+                AgentAction agentAction;
+                try {
+                    agentAction = executeAgentScript(agent);
+                } catch (ScriptPanicException e) {
+                    eliminateAgent(
+                            agent, Agent.State.PANICKED, String.format("agent '%s' panicked with message: %s", agentName, e.getMessage()));
+                    return;
+                } catch (ScriptTimeoutException e) {
+                    eliminateAgent(
+                            agent, Agent.State.TIMED_OUT, String.format("agent '%s' timed out", agentName));
+                    return;
+                } catch (ScriptExecutionException e) {
+                    eliminateAgent(
+                            agent, Agent.State.CRASHED, String.format("agent '%s' crashed with exception: %s", agentName, e.getMessage()));
+                    return;
+                }
 
-            applyAgentAction(agent, agentAction);
+                applyAgentAction(agent, agentAction);
+            });
         });
     }
 

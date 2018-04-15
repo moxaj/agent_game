@@ -9,6 +9,9 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
+/**
+ * A {@link Runner} implementation which runs the simulation in a JavaFX application.
+ */
 public final class JavaFxRunner extends Application implements Runner {
     @Override
     public void run() {
@@ -29,7 +32,7 @@ public final class JavaFxRunner extends Application implements Runner {
         }
 
         primaryStage.setTitle("Agent game");
-        primaryStage.setScene(new Scene(root, 1200, 820));
+        primaryStage.setScene(new Scene(root));
         primaryStage.setResizable(false);
         primaryStage.setOnCloseRequest(event -> {
             ((MainController) loader.getController()).onStageClosed();

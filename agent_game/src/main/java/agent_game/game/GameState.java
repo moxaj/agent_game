@@ -1,16 +1,16 @@
 package agent_game.game;
 
-import java.util.Optional;
-import java.util.Set;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Represents the game state.
  */
-public class GameState {
+public final class GameState {
     /**
-     * The participating agents.
+     * The participating teams.
      */
-    private final Set<Agent> agents;
+    private final List<Team> teams;
 
     /**
      * The arena.
@@ -32,8 +32,8 @@ public class GameState {
      */
     private boolean finished;
 
-    public GameState(Set<Agent> agents, Arena arena, GameParameters parameters) {
-        this.agents = agents;
+    public GameState(List<Team> teams, Arena arena, GameParameters parameters) {
+        this.teams = teams;
         this.arena = arena;
         this.parameters = parameters;
         this.round = 0;
@@ -41,10 +41,10 @@ public class GameState {
     }
 
     /**
-     * @return the value of {@link #agents}
+     * @return the value of {@link #teams}
      */
-    public Set<Agent> getAgents() {
-        return agents;
+    public List<Team> getTeams() {
+        return teams;
     }
 
     /**
@@ -87,5 +87,12 @@ public class GameState {
      */
     public void setFinished(boolean finished) {
         this.finished = finished;
+    }
+
+    /**
+     * @return the list of all participating agents
+     */
+    public List<Agent> getAgents() {
+        return teams.stream().flatMap(team -> team.getAgents().stream()).collect(Collectors.toList());
     }
 }

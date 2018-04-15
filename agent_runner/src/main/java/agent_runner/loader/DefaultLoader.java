@@ -32,16 +32,14 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
- *
+ * The default {@link Loader} implementation.
  */
 public final class DefaultLoader implements Loader {
     /**
-     * Loads the settings.
-     *
-     * @param settingsPath
-     * @return the loaded settings
+     * @param settingsPath the path to the settings file
+     * @return the settings
      */
-    private Settings loadSettings(Path settingsPath) {
+    private Settings readSettings(Path settingsPath) {
         YamlReader reader = null;
         try {
             reader = new YamlReader(new FileReader(settingsPath.toFile()));
@@ -59,6 +57,10 @@ public final class DefaultLoader implements Loader {
         }
     }
 
+    /**
+     * @param loggingSettings the logging settings
+     * @return a path to a fresh logging directory
+     */
     private Path makeLoggingDirectory(LoggingSettings loggingSettings) {
         if (loggingSettings == null) {
             throw new LoaderException("missing 'loggingSettings'");
@@ -87,6 +89,10 @@ public final class DefaultLoader implements Loader {
         return loggingDirectory;
     }
 
+    /**
+     * @param statisticsSettings the statistics settings
+     * @return a path to a fresh statistics directory
+     */
     private Path makeStatisticsDirectory(StatisticsSettings statisticsSettings) {
         if (statisticsSettings == null) {
             throw new LoaderException("missing 'statisticsSettings'");
@@ -115,10 +121,21 @@ public final class DefaultLoader implements Loader {
         return statisticsDirectory;
     }
 
+    /**
+     * @param loggingDirectory the directory of the logger
+     * @param loggerType       the type of the logger
+     * @return a fresh {@link Logger} instance
+     */
     private Logger makeLogger(Path loggingDirectory, String loggerType) {
         return makeLogger(loggingDirectory, loggerType, loggerType);
     }
 
+    /**
+     * @param loggingDirectory the directory of the logger
+     * @param loggerType       the type of the logger
+     * @param loggerName       the name of the logger
+     * @return a fresh {@link Logger} instance
+     */
     private Logger makeLogger(Path loggingDirectory, String loggerType, String loggerName) {
         Logger logger = Logger.getLogger(loggerName + "Logger");
         logger.setUseParentHandlers(false);
@@ -140,36 +157,36 @@ public final class DefaultLoader implements Loader {
         return logger;
     }
 
-    private Symbol parseMainFunctionName(String mainFunctionNameStr, String agentName) {
-        String[] symbolParts = mainFunctionNameStr.split("::");
-        if (symbolParts.length != 2 || symbolParts[1].split("\\.").length > 1) {
-            throw new LoaderException(String.format("invalid 'mainFunctionName': '%s' in agent: '%s'", mainFunctionNameStr,
-                    agentName));
-        }
-
-        return Symbol.create(symbolParts[0].split("\\."), symbolParts[1]);
-    }
-
-    private List<Agent> makeAgents(TeamSettings[] teams, Path loggingDirectory, Compiler compiler, Path settingsPath) {
-        if (teams == null) {
+    /**
+     * @param teamSettingsArray the team settings
+     * @param loggingDirectory  the logging directory
+     * @param compiler          the constructed compiler
+     * @param settingsPath      the path to the settings file
+     * @return the teams
+     */
+    private List<Team> makeTeams(TeamSettings[] teamSettingsArray, Path loggingDirectory, Compiler compiler, Path settingsPath) {
+        if (teamSettingsArray == null) {
             throw new LoaderException("missing 'simulatorSettings.teams'");
         }
 
         int[] agentIndex = {0};
-        return Arrays.stream(teams).flatMap(teamSettings -> {
+        return Arrays.stream(teamSettingsArray).map(teamSettings -> {
             String teamName = teamSettings.getName();
             if (teamName == null) {
                 throw new LoaderException("missing team name");
             }
 
-            Map<Object, Object> teamMemory = new HashMap<>();
-            return Arrays.stream(teamSettings.getAgents()).map(agentSettings -> {
+            Team team = new Team(teamName, new HashMap<>());
+            AgentSettings[] agentsSettingsArray = teamSettings.getAgents();
+            if (agentsSettingsArray == null) {
+                throw new LoaderException(String.format("missing 'agents' in team: '%s'", teamName));
+            }
+
+            team.setAgents(Arrays.stream(agentsSettingsArray).map(agentSettings -> {
                 String agentName = agentSettings.getName();
                 if (agentName == null) {
                     throw new LoaderException(String.format("missing agent name in team: '%s'", teamName));
                 }
-
-                Logger agentLogger = makeLogger(loggingDirectory, "agent", agentName);
 
                 String agentRootSourcePathStr = agentSettings.getRootSourcePath();
                 if (agentRootSourcePathStr == null) {
@@ -198,7 +215,11 @@ public final class DefaultLoader implements Loader {
                     throw new LoaderException(String.format("missing 'mainFunctionName' in agent: '%s'", agentName));
                 }
 
-                Symbol mainFunctionName = parseMainFunctionName(mainFunctionNameStr, agentName);
+                Symbol mainFunctionName = Symbol.parseQualifiedSymbolUnsafe(mainFunctionNameStr);
+                if (mainFunctionName == null) {
+                    throw new LoaderException(String.format("invalid 'mainFunctionName' in agent: '%s'", agentName));
+                }
+
                 Symbol mainNamespaceName = mainFunctionName.getNamespaceSymbol();
                 Class<?> agentClass = agentClasses.get(mainNamespaceName);
                 if (agentClass == null) {
@@ -208,7 +229,7 @@ public final class DefaultLoader implements Loader {
 
                 String methodName = mainFunctionName.getNameSymbol().toString();
                 Method mainMethod = Arrays.stream(agentClass.getMethods())
-                        .filter(method -> method.getName().equals(DefaultCompiler.munge(methodName)))
+                        .filter(method -> method.getName().equals(Compiler.munge(methodName)))
                         .findFirst()
                         .orElseThrow(() -> new LoaderException(
                                 String.format("no such main function: '%s' in agent: '%s'", mainFunctionName, agentName)));
@@ -224,11 +245,12 @@ public final class DefaultLoader implements Loader {
                             String.format("invalid main method arity: '%d' in agent: '%s'", mainMethodActualArity, agentName));
                 }
 
-                AgentScript agentScript = (state, memory, teamMemory2, statistics) -> {
+                AgentScript agentScript = (state, memory, teamMemory, statistics) -> {
                     try {
-                        return (AgentAction) mainMethod.invoke(null, state, memory, teamMemory2, statistics);
+                        return (AgentAction) mainMethod.invoke(null, state, memory, teamMemory, statistics);
                     } catch (IllegalAccessException e) {
-                        throw new LoaderException(); // Should not happen
+                        // Should not happen
+                        throw new LoaderException();
                     } catch (InvocationTargetException e) {
                         Throwable cause = e.getCause();
                         if (cause instanceof ScriptPanicException) {
@@ -243,12 +265,17 @@ public final class DefaultLoader implements Loader {
                     }
                 };
 
-                return new Agent(agentIndex[0]++, agentName, teamName, agentLogger, agentScript, teamMemory);
-            });
-        })
-                .collect(Collectors.toList());
+                return new Agent(agentName, agentIndex[0]++, team, agentScript, makeLogger(loggingDirectory, "agent", agentName));
+            }).collect(Collectors.toList()));
+
+            return team;
+        }).collect(Collectors.toList());
     }
 
+    /**
+     * @param arenaSettings the arena settings
+     * @return the {@link Arena} created from the settings
+     */
     private Arena makeArena(ArenaSettings arenaSettings) {
         if (arenaSettings == null) {
             throw new LoaderException("missing 'simulatorSettings.arenaSettings'");
@@ -267,57 +294,48 @@ public final class DefaultLoader implements Loader {
         return new Arena(width, height);
     }
 
+    /**
+     * @param gameSettings the game settings
+     * @return the {@link GameParameters} created from the settings
+     */
     private GameParameters makeGameParameters(GameSettings gameSettings) {
-        GameParameters gameParameters = new GameParameters();
-
         Integer timeQuota = gameSettings.getTimeQuota();
         if (timeQuota == null) {
             throw new LoaderException("missing 'simulatorSettings.gameSettings.timeQouta'");
         }
-
-        gameParameters.setTimeQuota(timeQuota);
 
         Integer initialEnergy = gameSettings.getInitialEnergy();
         if (initialEnergy == null) {
             throw new LoaderException("missing 'simulatorSettings.gameSettings.initialEnergy'");
         }
 
-        gameParameters.setInitialEnergy(initialEnergy);
-
         Integer energyLoss = gameSettings.getEnergyLoss();
         if (energyLoss == null) {
             throw new LoaderException("missing 'simulatorSettings.gameSettings.energyLoss'");
         }
-
-        gameParameters.setEnergyLoss(energyLoss);
 
         Integer energyRefill = gameSettings.getEnergyRefill();
         if (energyRefill == null) {
             throw new LoaderException("missing 'simulatorSettings.gameSettings.energyRefill'");
         }
 
-        gameParameters.setEnergyRefill(energyRefill);
-
         Integer energyFrequency = gameSettings.getEnergyFrequency();
         if (energyFrequency == null) {
             throw new LoaderException("missing 'simulatorSettings.gameSettings.energyFrequency'");
         }
-
-        gameParameters.setEnergyFrequency(energyFrequency);
 
         Integer visionRange = gameSettings.getVisionRange();
         if (visionRange == null) {
             throw new LoaderException("missing 'simulatorSettings.gameSettings.visionRange'");
         }
 
-        gameParameters.setVisionRange(visionRange);
-
-        return gameParameters;
+        return new GameParameters(timeQuota, initialEnergy, energyLoss, energyRefill, energyFrequency, visionRange);
     }
 
-    private DefaultSimulator makeSimulator(Path settingsPath) {
+    @Override
+    public Simulator load(Path settingsPath) {
         // Read settings
-        Settings settings = loadSettings(settingsPath);
+        Settings settings = readSettings(settingsPath);
 
         // Process logging settings
         Path loggingDirectory = makeLoggingDirectory(settings.getLoggingSettings());
@@ -331,20 +349,13 @@ public final class DefaultLoader implements Loader {
             throw new LoaderException("missing 'simulatorSettings'");
         }
 
-        List<Agent> agents = makeAgents(simulatorSettings.getTeams(), loggingDirectory, compiler, settingsPath);
-        Arena arena = makeArena(simulatorSettings.getArenaSettings());
-
-        // Process statistics settings
-        Path statisticsDirectory = makeStatisticsDirectory(simulatorSettings.getStatisticsSettings());
-
-        // Create simulator and invoke it
-        Logger simulatorLogger = makeLogger(loggingDirectory, "simulator");
+        // Create simulator
         return new DefaultSimulator(
-                simulatorLogger, statisticsDirectory, agents, arena, makeGameParameters(simulatorSettings.getGameSettings()));
-    }
-
-    @Override
-    public DefaultSimulator load(Path settingsPath) {
-        return makeSimulator(settingsPath);
+                new GameState(
+                        makeTeams(simulatorSettings.getTeams(), loggingDirectory, compiler, settingsPath),
+                        makeArena(simulatorSettings.getArenaSettings()),
+                        makeGameParameters(simulatorSettings.getGameSettings())),
+                makeLogger(loggingDirectory, "simulator"),
+                makeStatisticsDirectory(simulatorSettings.getStatisticsSettings()));
     }
 }
